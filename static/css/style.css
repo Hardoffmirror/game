@@ -578,3 +578,97 @@ textarea:focus {
 .modal-content:focus {
     outline: none;
 }
+
+/* Иконки предметов */
+.item-icon-wrapper {
+    width: 100%;
+    height: 120px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 15px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+}
+
+.item-icon {
+    max-width: 100px;
+    max-height: 100px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 10px rgba(255, 165, 0, 0.5));
+}
+
+.modal-item-icon-wrapper {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.modal-item-icon {
+    max-width: 150px;
+    max-height: 150px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 15px rgba(255, 165, 0, 0.7));
+}
+
+/* Кнопки действий в модальном окне */
+.modal-action-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+    flex-wrap: wrap;
+}
+
+.trade-btn {
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    border: none;
+    color: white;
+    padding: 10px 25px;
+    border-radius: 15px;
+    cursor: pointer;
+    font-size: 0.95em;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.trade-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(118, 75, 162, 0.6);
+}
+
+/* Цвета гемов по атрибутам */
+.gem-str {
+    border-left-color: #f44336 !important;
+}
+
+.gem-str .gem-name {
+    color: #ff6b6b !important;
+}
+
+.gem-dex {
+    border-left-color: #4caf50 !important;
+}
+
+.gem-dex .gem-name {
+    color: #66bb6a !important;
+}
+
+.gem-int {
+    border-left-color: #2196f3 !important;
+}
+
+.gem-int .gem-name {
+    color: #42a5f5 !important;
+}
+
+.gem-support {
+    border-left-color: #1dd1a1 !important;
+}
+
+.gem-support .gem-name {
+    color: #1dd1a1 !important;
+}

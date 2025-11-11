@@ -143,13 +143,18 @@ class PoBParser:
             if current_section:
                 mods.extend(current_section)
 
+        # Формируем URL для картинки (используем базовый тип или название)
+        item_for_icon = base_type if base_type else name
+        icon_url = f"https://assets.pobb.in/1/{item_for_icon}.webp"
+
         return {
             'slot': slot_name,
             'rarity': rarity,
             'name': name,
             'base_type': base_type,
             'mods': mods,
-            'raw_text': item_text
+            'raw_text': item_text,
+            'icon_url': icon_url
         }
 
     def get_build_info(self) -> Dict:
@@ -207,6 +212,30 @@ class PoBParser:
                         'enabled': gem.get('enabled', 'true'),
                         'skillId': gem.get('skillId', ''),
                     }
+
+                    # Определяем тип гема для цвета
+                    name = gem.get('nameSpec', '').lower()
+                    if 'support' in name or name.startswith('awakened'):
+                        gem_data['gem_type'] = 'support'
+                    else:
+                        gem_data['gem_type'] = 'active'
+
+                    # Определяем атрибут гема (для цвета)
+                    # Можно улучшить, добавив словарь известных гемов
+                    if any(x in name for x in ['fire', 'flame', 'burn', 'ignite', 'molten', 'infernal']):
+                        gem_data['attribute'] = 'str'
+                    elif any(x in name for x in ['cold', 'ice', 'frost', 'freeze', 'arctic']):
+                        gem_data['attribute'] = 'int'
+                    elif any(x in name for x in ['lightning', 'shock', 'spark', 'thunder']):
+                        gem_data['attribute'] = 'int'
+                    elif any(x in name for x in ['proj', 'arrow', 'blade', 'spectral', 'tornado']):
+                        gem_data['attribute'] = 'dex'
+                    elif 'support' in name:
+                        gem_data['attribute'] = 'support'
+                    else:
+                        # По умолчанию синий (int)
+                        gem_data['attribute'] = 'int'
+
                     skill_data['gems'].append(gem_data)
 
                 skills.append(skill_data)

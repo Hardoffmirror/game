@@ -141,6 +141,11 @@ function createItemCard(item) {
     const rarityClass = `rarity-${item.rarity}`;
 
     card.innerHTML = `
+        ${item.icon_url ? `
+            <div class="item-icon-wrapper">
+                <img src="${item.icon_url}" alt="${escapeHtml(item.name)}" class="item-icon" onerror="this.style.display='none'">
+            </div>
+        ` : ''}
         <div class="item-slot">Слот: ${item.slot}</div>
         <div class="item-rarity ${rarityClass}">${item.rarity}</div>
         <div class="item-name ${rarityClass}">${item.name}</div>
@@ -174,6 +179,11 @@ function openItemModal(item) {
     // Формируем детальную информацию
     let detailsHTML = `
         <div class="modal-section">
+            ${item.icon_url ? `
+                <div class="modal-item-icon-wrapper">
+                    <img src="${item.icon_url}" alt="${escapeHtml(item.name)}" class="modal-item-icon" onerror="this.style.display='none'">
+                </div>
+            ` : ''}
             <h3>Основная информация</h3>
             <div class="item-detail-row">
                 <span class="item-detail-label">Слот:</span>
@@ -189,7 +199,10 @@ function openItemModal(item) {
                     <span class="item-detail-value">${escapeHtml(item.base_type)}</span>
                 </div>
             ` : ''}
-            <button class="copy-btn" onclick="copyToClipboard('${escapeHtml(item.name)}', 'Название скопировано!')">📋 Копировать название</button>
+            <div class="modal-action-buttons">
+                <button class="copy-btn" onclick="copyToClipboard('${escapeHtml(item.name)}', 'Название скопировано!')">📋 Копировать название</button>
+                <a href="${getPoETradeLink(item.name)}" target="_blank" class="trade-btn">🔍 Найти на Trade</a>
+            </div>
         </div>
     `;
 
@@ -295,6 +308,17 @@ function displaySkills() {
     });
 }
 
+// Получить цвет для гема по атрибуту
+function getGemColor(attribute) {
+    const colors = {
+        'str': 'gem-str',      // Красный (strength)
+        'dex': 'gem-dex',      // Зеленый (dexterity)
+        'int': 'gem-int',      // Синий (intelligence)
+        'support': 'gem-support' // Бирюзовый (support)
+    };
+    return colors[attribute] || 'gem-int';
+}
+
 // Создание карточки скилла
 function createSkillCard(skill) {
     const card = document.createElement('div');
@@ -303,12 +327,15 @@ function createSkillCard(skill) {
     card.innerHTML = `
         <div class="skill-label">${skill.label || 'Unnamed Skill'}</div>
         <div class="gems-list">
-            ${skill.gems.map(gem => `
-                <div class="gem-item">
-                    <span class="gem-name">${gem.nameSpec}</span>
-                    <span class="gem-stats">Lvl: ${gem.level} | Q: ${gem.quality}%</span>
-                </div>
-            `).join('')}
+            ${skill.gems.map(gem => {
+                const gemColorClass = getGemColor(gem.attribute || 'int');
+                return `
+                    <div class="gem-item ${gemColorClass}">
+                        <span class="gem-name">${gem.nameSpec}</span>
+                        <span class="gem-stats">Lvl: ${gem.level} | Q: ${gem.quality}%</span>
+                    </div>
+                `;
+            }).join('')}
         </div>
     `;
 
@@ -384,4 +411,12 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// Получить ссылку на PoE Trade
+function getPoETradeLink(itemName) {
+    // Используем официальный trade site
+    // Формат: https://www.pathofexile.com/trade/search/Standard?q={"query":{"name":"ItemName"}}
+    const encodedName = encodeURIComponent(itemName);
+    return `https://www.pathofexile.com/trade/search/Standard?q=${encodedName}`;
 }
