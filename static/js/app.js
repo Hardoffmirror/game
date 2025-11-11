@@ -122,15 +122,70 @@ function displayBuildInfo() {
     document.getElementById('level').textContent = info.level;
 }
 
+// Группировка предметов по категориям
+function categorizeItems(items) {
+    const categories = {
+        weapon: { name: '⚔️ Оружие', items: [] },
+        armor: { name: '🛡️ Броня', items: [] },
+        accessories: { name: '💍 Украшения', items: [] },
+        flasks: { name: '⚗️ Фласки', items: [] },
+        jewels: { name: '💎 Самоцветы', items: [] },
+        other: { name: '📦 Прочее', items: [] }
+    };
+
+    items.forEach(item => {
+        const slot = item.slot.toLowerCase();
+
+        if (slot.includes('weapon')) {
+            categories.weapon.items.push(item);
+        } else if (slot.includes('helm') || slot.includes('body') || slot.includes('gloves') ||
+                   slot.includes('boots') || slot.includes('shield')) {
+            categories.armor.items.push(item);
+        } else if (slot.includes('ring') || slot.includes('amulet') || slot.includes('belt')) {
+            categories.accessories.items.push(item);
+        } else if (slot.includes('flask')) {
+            categories.flasks.items.push(item);
+        } else if (slot.includes('jewel')) {
+            categories.jewels.items.push(item);
+        } else {
+            categories.other.items.push(item);
+        }
+    });
+
+    return categories;
+}
+
 // Отображение предметов
 function displayItems() {
     const itemsContainer = document.getElementById('itemsList');
     itemsContainer.innerHTML = '';
 
-    buildData.items.forEach(item => {
-        const itemCard = createItemCard(item);
-        itemsContainer.appendChild(itemCard);
-    });
+    const categories = categorizeItems(buildData.items);
+
+    // Проходим по всем категориям
+    for (const [key, category] of Object.entries(categories)) {
+        if (category.items.length > 0) {
+            // Создаем заголовок категории
+            const categoryHeader = document.createElement('div');
+            categoryHeader.className = 'item-category-header';
+            categoryHeader.innerHTML = `
+                <h3>${category.name}</h3>
+                <span class="item-count">${category.items.length} предмет(ов)</span>
+            `;
+            itemsContainer.appendChild(categoryHeader);
+
+            // Создаем контейнер для предметов категории
+            const categoryGrid = document.createElement('div');
+            categoryGrid.className = 'item-grid';
+
+            category.items.forEach(item => {
+                const itemCard = createItemCard(item);
+                categoryGrid.appendChild(itemCard);
+            });
+
+            itemsContainer.appendChild(categoryGrid);
+        }
+    }
 }
 
 // Создание карточки предмета
@@ -327,19 +382,31 @@ function createSkillCard(skill) {
     card.innerHTML = `
         <div class="skill-label">${skill.label || 'Unnamed Skill'}</div>
         <div class="gems-list">
-            ${skill.gems.map(gem => {
+            ${skill.gems.map((gem, idx) => {
                 const gemColorClass = getGemColor(gem.attribute || 'int');
                 return `
                     <div class="gem-item ${gemColorClass}">
-                        <span class="gem-name">${gem.nameSpec}</span>
-                        <span class="gem-stats">Lvl: ${gem.level} | Q: ${gem.quality}%</span>
+                        <div class="gem-info">
+                            <span class="gem-name">${gem.nameSpec}</span>
+                            <span class="gem-stats">Lvl: ${gem.level} | Q: ${gem.quality}%</span>
+                        </div>
+                        <button class="copy-gem-btn" onclick="copyToClipboard('${escapeHtml(gem.nameSpec)}', 'Название камня скопировано!')">📋</button>
                     </div>
                 `;
             }).join('')}
         </div>
+        <div style="margin-top: 15px; display: flex; gap: 10px;">
+            <button class="copy-btn" onclick="copyAllGems(${JSON.stringify(skill.gems.map(g => g.nameSpec)).replace(/"/g, '&quot;')})">📋 Копировать все камни</button>
+        </div>
     `;
 
     return card;
+}
+
+// Копировать все камни из скилла
+function copyAllGems(gemNames) {
+    const text = gemNames.join('\n');
+    copyToClipboard(text, 'Все камни скопированы!');
 }
 
 // Отображение дерева
@@ -423,15 +490,29 @@ function displayTree() {
 
         <div class="tree-export-section">
             <h3 style="color: #ffa500; margin: 30px 0 15px 0;">
-                <span style="font-size: 1.5em;">📋</span> Экспорт узлов
+                <span style="font-size: 1.5em;">📋</span> Экспорт и планировщики
             </h3>
+            <p style="color: #aaa; margin-bottom: 15px;">
+                Используйте внешние планировщики для визуализации вашего дерева умений:
+            </p>
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                 <button class="copy-btn" onclick="copyTreeNodes()">
                     📋 Копировать все ID узлов
                 </button>
                 <a href="https://www.pathofexile.com/passive-skill-tree" target="_blank" class="trade-btn">
-                    🌐 Открыть официальное дерево
+                    🌐 Официальное дерево PoE
                 </a>
+                <a href="https://poeplanner.com/" target="_blank" class="trade-btn">
+                    🔧 PoE Planner
+                </a>
+                <a href="https://poedb.tw/us/Passive_Skill_Tree" target="_blank" class="trade-btn">
+                    📖 PoE DB - База узлов
+                </a>
+            </div>
+            <div style="margin-top: 20px; padding: 15px; background: rgba(255, 165, 0, 0.1); border-radius: 10px; border: 2px solid rgba(255, 165, 0, 0.3);">
+                <p style="color: #ddd; font-size: 0.95em;">
+                    💡 <strong>Совет:</strong> Скопируйте ID узлов и вставьте их в планировщик для детального просмотра каждого узла и его бонусов.
+                </p>
             </div>
         </div>
     `;
@@ -546,6 +627,15 @@ function escapeHtml(text) {
 function getPoETradeLink(itemName) {
     // Используем официальный trade site
     // Формат: https://www.pathofexile.com/trade/search/Standard?q={"query":{"name":"ItemName"}}
-    const encodedName = encodeURIComponent(itemName);
-    return `https://www.pathofexile.com/trade/search/Standard?q=${encodedName}`;
+    const query = {
+        query: {
+            name: itemName,
+            type: ""
+        },
+        sort: {
+            price: "asc"
+        }
+    };
+    const encodedQuery = encodeURIComponent(JSON.stringify(query));
+    return `https://www.pathofexile.com/trade/search/Standard?q=${encodedQuery}`;
 }

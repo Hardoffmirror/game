@@ -7,6 +7,7 @@ import base64
 import zlib
 import xml.etree.ElementTree as ET
 from typing import Dict, List, Optional
+from urllib.parse import quote
 
 
 class PoBParser:
@@ -144,8 +145,14 @@ class PoBParser:
                 mods.extend(current_section)
 
         # Формируем URL для картинки (используем базовый тип или название)
+        # Приоритет: базовый тип > название
         item_for_icon = base_type if base_type else name
-        icon_url = f"https://assets.pobb.in/1/{item_for_icon}.webp"
+        # Очищаем и кодируем название для URL
+        item_for_icon_clean = item_for_icon.replace("'", "").replace('"', '').strip()
+        item_for_icon_encoded = quote(item_for_icon_clean)
+
+        # Используем упрощенный URL
+        icon_url = f"https://web.poecdn.com/image/Art/2DItems/Currency/{item_for_icon_encoded}.png"
 
         return {
             'slot': slot_name,
@@ -175,6 +182,84 @@ class PoBParser:
         }
 
         return info
+
+    def _determine_gem_attribute(self, gem_name: str) -> str:
+        """
+        Определяет атрибут гема по его названию
+
+        Args:
+            gem_name: Название гема (в нижнем регистре)
+
+        Returns:
+            Атрибут гема: 'str', 'dex', 'int', или 'support'
+        """
+        # Список support гемов (всегда бирюзовые)
+        if 'support' in gem_name:
+            return 'support'
+
+        # Strength (красные) гемы
+        str_gems = [
+            'earthquake', 'molten strike', 'ground slam', 'heavy strike', 'cleave',
+            'infernal blow', 'dominating blow', 'shield charge', 'vigilant strike',
+            'ancestral warchief', 'ancestral protector', 'sunder', 'tectonic slam',
+            'consecrated path', 'immortal call', 'enduring cry', 'rallying cry',
+            'anger', 'determination', 'vitality', 'purity of fire', 'ancestral cry',
+            'seismic cry', 'infernal cry', 'flame link', 'armor', 'war', 'physical',
+            'boneshatter', 'earthshatter', 'rage', 'berserk', 'general', 'blood',
+            'perforate', 'shield crush', 'smite', 'reap', 'corrupting fever', 'exsanguinate'
+        ]
+
+        # Dexterity (зеленые) гемы
+        dex_gems = [
+            'split arrow', 'ice shot', 'burning arrow', 'lightning arrow', 'rain of arrows',
+            'tornado shot', 'barrage', 'blast rain', 'caustic arrow', 'toxic rain',
+            'scourge arrow', 'elemental hit', 'spectral throw', 'venom gyre', 'cobra lash',
+            'blade flurry', 'blade vortex', 'ethereal knives', 'frost blades', 'wild strike',
+            'double strike', 'dual strike', 'flicker strike', 'reave', 'lacerate',
+            'cyclone', 'whirling blades', 'riposte', 'puncture', 'frenzy', 'vigilant strike',
+            'blink arrow', 'mirror arrow', 'bear trap', 'fire trap', 'explosive trap',
+            'grace', 'haste', 'purity of ice', 'clarity', 'precision', 'sniper',
+            'artillery ballista', 'siege ballista', 'shrapnel ballista', 'ensnaring arrow',
+            'ballista', 'projectile', 'arrow', 'trap', 'mine', 'poison', 'venom',
+            'spectral shield throw', 'spectral helix', 'pestilent strike', 'viper strike',
+            'plague bearer', 'withering step', 'phase run'
+        ]
+
+        # Intelligence (синие) гемы
+        int_gems = [
+            'arc', 'ball lightning', 'discharge', 'divine ire', 'fireball', 'firestorm',
+            'flame surge', 'flameblast', 'freeze pulse', 'frostbolt', 'glacial cascade',
+            'ice nova', 'ice spear', 'incinerate', 'lightning tendrils', 'lightning warp',
+            'orb of storms', 'power siphon', 'shock nova', 'spark', 'storm', 'brand',
+            'cold snap', 'frost bomb', 'frostblink', 'creeping frost', 'wintertide',
+            'armageddon', 'blazing salvo', 'crackling lance', 'forbidden rite', 'hydrosphere',
+            'kinetic', 'magma orb', 'penance brand', 'purifying flame', 'soulrend',
+            'vortex', 'wave of conviction', 'winter orb', 'voltaxic burst', 'sigil',
+            'raise zombie', 'raise spectre', 'summon skeleton', 'summon raging spirit',
+            'animate guardian', 'desecrate', 'flesh offering', 'bone offering', 'convocation',
+            'clarity', 'discipline', 'wrath', 'zealotry', 'malevolence', 'conductivity',
+            'elemental weakness', 'enfeeble', 'flammability', 'frostbite', 'temporal chains',
+            'vulnerability', 'curse', 'hex', 'mark', 'bane', 'essence drain', 'contagion',
+            'dark pact', 'blight', 'siphoning', 'energy', 'mana', 'minion', 'summon',
+            'volatile dead', 'cremation', 'bodyswap', 'unearth', 'detonate dead', 'offering',
+            'srs', 'absolution', 'eye of winter', 'storm call'
+        ]
+
+        # Проверяем вхождение ключевых слов
+        for gem in str_gems:
+            if gem in gem_name:
+                return 'str'
+
+        for gem in dex_gems:
+            if gem in gem_name:
+                return 'dex'
+
+        for gem in int_gems:
+            if gem in gem_name:
+                return 'int'
+
+        # По умолчанию возвращаем int (синий)
+        return 'int'
 
     def get_skills(self) -> List[Dict]:
         """
@@ -213,28 +298,9 @@ class PoBParser:
                         'skillId': gem.get('skillId', ''),
                     }
 
-                    # Определяем тип гема для цвета
+                    # Определяем атрибут гема
                     name = gem.get('nameSpec', '').lower()
-                    if 'support' in name or name.startswith('awakened'):
-                        gem_data['gem_type'] = 'support'
-                    else:
-                        gem_data['gem_type'] = 'active'
-
-                    # Определяем атрибут гема (для цвета)
-                    # Можно улучшить, добавив словарь известных гемов
-                    if any(x in name for x in ['fire', 'flame', 'burn', 'ignite', 'molten', 'infernal']):
-                        gem_data['attribute'] = 'str'
-                    elif any(x in name for x in ['cold', 'ice', 'frost', 'freeze', 'arctic']):
-                        gem_data['attribute'] = 'int'
-                    elif any(x in name for x in ['lightning', 'shock', 'spark', 'thunder']):
-                        gem_data['attribute'] = 'int'
-                    elif any(x in name for x in ['proj', 'arrow', 'blade', 'spectral', 'tornado']):
-                        gem_data['attribute'] = 'dex'
-                    elif 'support' in name:
-                        gem_data['attribute'] = 'support'
-                    else:
-                        # По умолчанию синий (int)
-                        gem_data['attribute'] = 'int'
+                    gem_data['attribute'] = self._determine_gem_attribute(name)
 
                     skill_data['gems'].append(gem_data)
 
