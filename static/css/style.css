@@ -672,3 +672,208 @@ textarea:focus {
 .gem-support .gem-name {
     color: #1dd1a1 !important;
 }
+
+/* Стили для дерева умений */
+.tree-overview {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.tree-stat-card {
+    background: linear-gradient(135deg, rgba(255, 165, 0, 0.15) 0%, rgba(255, 107, 107, 0.15) 100%);
+    border: 2px solid rgba(255, 165, 0, 0.4);
+    border-radius: 15px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    transition: all 0.3s;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.tree-stat-card:hover {
+    transform: translateY(-5px);
+    border-color: #ffa500;
+    box-shadow: 0 8px 25px rgba(255, 165, 0, 0.3);
+}
+
+.tree-stat-icon {
+    font-size: 3em;
+    line-height: 1;
+    filter: drop-shadow(0 0 10px rgba(255, 165, 0, 0.5));
+}
+
+.tree-stat-content {
+    flex: 1;
+}
+
+.tree-stat-value {
+    font-size: 1.8em;
+    font-weight: 700;
+    color: #ffa500;
+    line-height: 1.2;
+    text-shadow: 0 0 10px rgba(255, 165, 0, 0.5);
+}
+
+.tree-stat-label {
+    color: #aaa;
+    font-size: 0.9em;
+    margin-top: 5px;
+}
+
+.tree-visualization-section {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 25px;
+    border-radius: 15px;
+    margin-bottom: 25px;
+    border: 2px solid rgba(255, 165, 0, 0.2);
+}
+
+.tree-visual-info {
+    margin-bottom: 20px;
+}
+
+.tree-nodes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px;
+    max-height: 600px;
+    overflow-y: auto;
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+}
+
+/* Кастомный скроллбар для дерева узлов */
+.tree-nodes-grid::-webkit-scrollbar {
+    width: 10px;
+}
+
+.tree-nodes-grid::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+}
+
+.tree-nodes-grid::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #ffa500, #ff6b6b);
+    border-radius: 10px;
+    transition: background 0.3s;
+}
+
+.tree-nodes-grid::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #ffb733, #ff8989);
+}
+
+.tree-node-pill {
+    background: linear-gradient(135deg, rgba(29, 209, 161, 0.2) 0%, rgba(95, 39, 205, 0.2) 100%);
+    border: 2px solid rgba(29, 209, 161, 0.4);
+    border-radius: 10px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    transition: all 0.3s;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.tree-node-pill::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+.tree-node-pill:hover::before {
+    left: 100%;
+}
+
+.tree-node-pill:hover {
+    transform: scale(1.05) translateY(-3px);
+    border-color: #1dd1a1;
+    box-shadow: 0 5px 20px rgba(29, 209, 161, 0.4);
+    background: linear-gradient(135deg, rgba(29, 209, 161, 0.3) 0%, rgba(95, 39, 205, 0.3) 100%);
+}
+
+.node-number {
+    font-size: 0.75em;
+    color: #888;
+    font-weight: 600;
+}
+
+.node-id {
+    font-size: 1.1em;
+    color: #1dd1a1;
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+}
+
+.tree-export-section {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 25px;
+    border-radius: 15px;
+    border: 2px solid rgba(255, 165, 0, 0.2);
+}
+
+.tree-more-nodes {
+    margin-top: 20px;
+    padding: 15px;
+    background: rgba(255, 165, 0, 0.1);
+    border-radius: 10px;
+    border: 2px dashed rgba(255, 165, 0, 0.3);
+}
+
+/* Адаптивность для мобильных */
+@media (max-width: 768px) {
+    .tree-overview {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
+
+    .tree-nodes-grid {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 8px;
+    }
+
+    .tree-stat-icon {
+        font-size: 2em;
+    }
+
+    .tree-stat-value {
+        font-size: 1.4em;
+    }
+}
+
+/* Анимация появления карточек */
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.tree-stat-card {
+    animation: fadeInScale 0.5s ease-out;
+}
+
+.tree-node-pill {
+    animation: fadeInScale 0.3s ease-out;
+}
+
+/* Добавим задержку для каждой карточки */
+.tree-stat-card:nth-child(1) { animation-delay: 0.1s; }
+.tree-stat-card:nth-child(2) { animation-delay: 0.2s; }
+.tree-stat-card:nth-child(3) { animation-delay: 0.3s; }
+.tree-stat-card:nth-child(4) { animation-delay: 0.4s; }

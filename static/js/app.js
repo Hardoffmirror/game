@@ -347,22 +347,151 @@ function displayTree() {
     const treeContainer = document.getElementById('treeInfo');
     const tree = buildData.tree;
 
-    if (tree.specs.length === 0) {
+    if (!tree.specs || tree.specs.length === 0) {
         treeContainer.innerHTML = '<p>Информация о дереве не найдена</p>';
         return;
     }
 
     const spec = tree.specs[0];
-    const nodesCount = spec.nodes.filter(n => n).length;
+    const nodes = spec.nodes.filter(n => n && n !== '');
+    const nodesCount = nodes.length;
 
-    treeContainer.innerHTML = `
-        <div class="tree-info">
-            <div class="nodes-count">Выбрано узлов: ${nodesCount}</div>
-            <div class="config-value">Версия дерева: ${spec.treeVersion}</div>
-            <div class="config-value">Class ID: ${spec.classId}</div>
-            <div class="config-value">Ascend Class ID: ${spec.ascendClassId}</div>
+    // Создаем красивую визуализацию
+    let html = `
+        <div class="tree-overview">
+            <div class="tree-stat-card">
+                <div class="tree-stat-icon">🌳</div>
+                <div class="tree-stat-content">
+                    <div class="tree-stat-value">${nodesCount}</div>
+                    <div class="tree-stat-label">Всего узлов</div>
+                </div>
+            </div>
+
+            <div class="tree-stat-card">
+                <div class="tree-stat-icon">⚡</div>
+                <div class="tree-stat-content">
+                    <div class="tree-stat-value">${spec.treeVersion || 'N/A'}</div>
+                    <div class="tree-stat-label">Версия дерева</div>
+                </div>
+            </div>
+
+            <div class="tree-stat-card">
+                <div class="tree-stat-icon">👤</div>
+                <div class="tree-stat-content">
+                    <div class="tree-stat-value">${getClassName(spec.classId)}</div>
+                    <div class="tree-stat-label">Класс персонажа</div>
+                </div>
+            </div>
+
+            <div class="tree-stat-card">
+                <div class="tree-stat-icon">🔮</div>
+                <div class="tree-stat-content">
+                    <div class="tree-stat-value">${getAscendClassName(spec.ascendClassId)}</div>
+                    <div class="tree-stat-label">Подкласс</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tree-visualization-section">
+            <h3 style="color: #ffa500; margin: 30px 0 15px 0;">
+                <span style="font-size: 1.5em;">🗺️</span> Визуализация дерева умений
+            </h3>
+            <div class="tree-visual-info">
+                <p style="color: #aaa; margin-bottom: 15px;">
+                    Дерево пассивных умений содержит <strong style="color: #ffa500;">${nodesCount}</strong> выбранных узлов.
+                    Ниже представлены все ID узлов из вашего билда.
+                </p>
+            </div>
+
+            <div class="tree-nodes-grid">
+                ${nodes.slice(0, 100).map((nodeId, index) => `
+                    <div class="tree-node-pill" title="Node ID: ${nodeId}">
+                        <span class="node-number">#${index + 1}</span>
+                        <span class="node-id">${nodeId}</span>
+                    </div>
+                `).join('')}
+            </div>
+
+            ${nodes.length > 100 ? `
+                <div class="tree-more-nodes">
+                    <p style="color: #888; text-align: center; margin-top: 20px;">
+                        ... и еще ${nodes.length - 100} узлов
+                    </p>
+                </div>
+            ` : ''}
+        </div>
+
+        <div class="tree-export-section">
+            <h3 style="color: #ffa500; margin: 30px 0 15px 0;">
+                <span style="font-size: 1.5em;">📋</span> Экспорт узлов
+            </h3>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button class="copy-btn" onclick="copyTreeNodes()">
+                    📋 Копировать все ID узлов
+                </button>
+                <a href="https://www.pathofexile.com/passive-skill-tree" target="_blank" class="trade-btn">
+                    🌐 Открыть официальное дерево
+                </a>
+            </div>
         </div>
     `;
+
+    treeContainer.innerHTML = html;
+}
+
+// Получить название класса по ID
+function getClassName(classId) {
+    const classes = {
+        '0': 'Scion',
+        '1': 'Marauder',
+        '2': 'Ranger',
+        '3': 'Witch',
+        '4': 'Duelist',
+        '5': 'Templar',
+        '6': 'Shadow'
+    };
+    return classes[classId] || `Class ${classId}`;
+}
+
+// Получить название подкласса по ID
+function getAscendClassName(ascendClassId) {
+    const ascendClasses = {
+        '0': 'None',
+        '1': 'Juggernaut',
+        '2': 'Berserker',
+        '3': 'Chieftain',
+        '4': 'Raider',
+        '5': 'Deadeye',
+        '6': 'Pathfinder',
+        '7': 'Occultist',
+        '8': 'Elementalist',
+        '9': 'Necromancer',
+        '10': 'Slayer',
+        '11': 'Gladiator',
+        '12': 'Champion',
+        '13': 'Inquisitor',
+        '14': 'Hierophant',
+        '15': 'Guardian',
+        '16': 'Assassin',
+        '17': 'Trickster',
+        '18': 'Saboteur',
+        '19': 'Ascendant'
+    };
+    return ascendClasses[ascendClassId] || `Ascend ${ascendClassId}`;
+}
+
+// Копировать ID узлов дерева
+function copyTreeNodes() {
+    if (!buildData || !buildData.tree || !buildData.tree.specs || buildData.tree.specs.length === 0) {
+        showNotification('Нет данных о дереве', 'error');
+        return;
+    }
+
+    const spec = buildData.tree.specs[0];
+    const nodes = spec.nodes.filter(n => n && n !== '');
+    const nodesList = nodes.join(', ');
+
+    copyToClipboard(nodesList, `Скопировано ${nodes.length} узлов!`);
 }
 
 // Отображение конфигурации
