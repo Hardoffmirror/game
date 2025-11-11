@@ -75,6 +75,19 @@
                 <div id="itemsList" class="item-grid"></div>
             </div>
 
+            <!-- Модальное окно для детального просмотра предмета -->
+            <div id="itemModal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2 id="modalItemName">Предмет</h2>
+                        <button class="modal-close" onclick="closeItemModal()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="modalItemDetails"></div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Вкладка: Скиллы -->
             <div id="skills" class="tab-content">
                 <h2 style="margin-bottom: 20px; color: #ffa500;">Скиллы и Гемы</h2>

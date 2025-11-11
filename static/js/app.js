@@ -4,6 +4,13 @@ let buildData = null;
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', function() {
     setupEventListeners();
+
+    // Закрытие модального окна по Escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeItemModal();
+        }
+    });
 });
 
 // Настройка слушателей событий
@@ -140,13 +147,136 @@ function createItemCard(item) {
         ${item.base_type ? `<div class="item-base">${item.base_type}</div>` : ''}
         ${item.mods.length > 0 ? `
             <div class="item-mods">
-                ${item.mods.map(mod => `<div class="item-mod">• ${escapeHtml(mod)}</div>`).join('')}
+                ${item.mods.slice(0, 3).map(mod => `<div class="item-mod">• ${escapeHtml(mod)}</div>`).join('')}
+                ${item.mods.length > 3 ? `<div class="item-mod">... и еще ${item.mods.length - 3} модов</div>` : ''}
             </div>
         ` : ''}
-        <button class="copy-btn" onclick="copyItemText('${escapeHtml(item.name)}')">📋 Копировать название</button>
+        <div class="item-click-hint">Нажмите для подробностей</div>
     `;
 
+    // Добавляем обработчик клика для открытия модального окна
+    card.addEventListener('click', () => openItemModal(item));
+
     return card;
+}
+
+// Открыть модальное окно с детальной информацией о предмете
+function openItemModal(item) {
+    const modal = document.getElementById('itemModal');
+    const modalName = document.getElementById('modalItemName');
+    const modalDetails = document.getElementById('modalItemDetails');
+
+    const rarityClass = `rarity-${item.rarity}`;
+
+    // Устанавливаем название
+    modalName.innerHTML = `<span class="${rarityClass}">${escapeHtml(item.name)}</span>`;
+
+    // Формируем детальную информацию
+    let detailsHTML = `
+        <div class="modal-section">
+            <h3>Основная информация</h3>
+            <div class="item-detail-row">
+                <span class="item-detail-label">Слот:</span>
+                <span class="item-detail-value">${escapeHtml(item.slot)}</span>
+            </div>
+            <div class="item-detail-row">
+                <span class="item-detail-label">Редкость:</span>
+                <span class="item-detail-value ${rarityClass}">${escapeHtml(item.rarity)}</span>
+            </div>
+            ${item.base_type ? `
+                <div class="item-detail-row">
+                    <span class="item-detail-label">Базовый тип:</span>
+                    <span class="item-detail-value">${escapeHtml(item.base_type)}</span>
+                </div>
+            ` : ''}
+            <button class="copy-btn" onclick="copyToClipboard('${escapeHtml(item.name)}', 'Название скопировано!')">📋 Копировать название</button>
+        </div>
+    `;
+
+    // Добавляем моды, если они есть
+    if (item.mods.length > 0) {
+        detailsHTML += `
+            <div class="modal-section">
+                <h3>Характеристики и моды</h3>
+        `;
+
+        item.mods.forEach((mod, index) => {
+            if (mod.trim()) {
+                detailsHTML += `
+                    <div class="mod-line">
+                        <span class="mod-text">${escapeHtml(mod)}</span>
+                        <button class="copy-mod-btn" onclick="copyToClipboard('${escapeHtml(mod)}', 'Мод скопирован!')">📋</button>
+                    </div>
+                `;
+            }
+        });
+
+        detailsHTML += `
+                <button class="copy-btn" style="margin-top: 15px;" onclick="copyAllMods(${JSON.stringify(item.mods).replace(/"/g, '&quot;')})">📋 Копировать все моды</button>
+            </div>
+        `;
+    }
+
+    modalDetails.innerHTML = detailsHTML;
+
+    // Показываем модальное окно
+    modal.classList.add('active');
+
+    // Закрытие по клику вне окна
+    modal.onclick = function(event) {
+        if (event.target === modal) {
+            closeItemModal();
+        }
+    };
+}
+
+// Закрыть модальное окно
+function closeItemModal() {
+    const modal = document.getElementById('itemModal');
+    modal.classList.remove('active');
+}
+
+// Копировать все моды предмета
+function copyAllMods(mods) {
+    const text = mods.filter(m => m.trim()).join('\n');
+    copyToClipboard(text, 'Все моды скопированы!');
+}
+
+// Универсальная функция копирования в буфер обмена
+function copyToClipboard(text, successMessage = 'Скопировано!') {
+    navigator.clipboard.writeText(text).then(() => {
+        showNotification(successMessage);
+    }).catch(err => {
+        console.error('Ошибка копирования:', err);
+        showNotification('Ошибка копирования', 'error');
+    });
+}
+
+// Показать уведомление
+function showNotification(message, type = 'success') {
+    // Создаем элемент уведомления
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.textContent = message;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${type === 'success' ? '#1dd1a1' : '#ff6b6b'};
+        color: white;
+        padding: 15px 25px;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        z-index: 10000;
+        animation: slideInRight 0.3s, fadeOut 0.3s 2.7s;
+    `;
+
+    document.body.appendChild(notification);
+
+    // Удаляем через 3 секунды
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
 }
 
 // Отображение скиллов
@@ -248,14 +378,6 @@ function displayNotes() {
     notesContainer.innerHTML = `<div class="notes-content">${escapeHtml(notes)}</div>`;
 }
 
-// Копирование текста
-function copyItemText(text) {
-    navigator.clipboard.writeText(text).then(() => {
-        alert('Скопировано: ' + text);
-    }).catch(err => {
-        console.error('Ошибка копирования:', err);
-    });
-}
 
 // Экранирование HTML
 function escapeHtml(text) {
