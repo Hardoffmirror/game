@@ -114,6 +114,7 @@ class PoBParser:
         name = "Unknown Item"
         base_type = ""
         mods = []
+        sockets = ""
 
         if lines:
             # Ищем редкость (Rarity: ...)
@@ -139,20 +140,23 @@ class PoBParser:
                         mods.extend(current_section)
                         current_section = []
                 else:
-                    current_section.append(line)
+                    # Проверяем на информацию о сокетах
+                    if line.startswith('Sockets:'):
+                        sockets = line.replace('Sockets:', '').strip()
+                    else:
+                        current_section.append(line)
 
             if current_section:
                 mods.extend(current_section)
 
-        # Формируем URL для картинки (используем базовый тип или название)
+        # Формируем URL для картинки используя pobb.in
         # Приоритет: базовый тип > название
         item_for_icon = base_type if base_type else name
-        # Очищаем и кодируем название для URL
-        item_for_icon_clean = item_for_icon.replace("'", "").replace('"', '').strip()
-        item_for_icon_encoded = quote(item_for_icon_clean)
+        # Очищаем название для URL (убираем специальные символы)
+        item_for_icon_clean = item_for_icon.replace("'", "").replace('"', '').replace(' ', '')
 
-        # Используем упрощенный URL
-        icon_url = f"https://web.poecdn.com/image/Art/2DItems/Currency/{item_for_icon_encoded}.png"
+        # Используем assets.pobb.in для изображений
+        icon_url = f"https://assets.pobb.in/1/{item_for_icon_clean}.webp"
 
         return {
             'slot': slot_name,
@@ -160,6 +164,7 @@ class PoBParser:
             'name': name,
             'base_type': base_type,
             'mods': mods,
+            'sockets': sockets,
             'raw_text': item_text,
             'icon_url': icon_url
         }

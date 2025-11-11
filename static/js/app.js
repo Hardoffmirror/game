@@ -202,6 +202,7 @@ function createItemCard(item) {
             </div>
         ` : ''}
         <div class="item-slot">Слот: ${item.slot}</div>
+        ${item.sockets ? `<div class="item-sockets">${renderSockets(item.sockets)}</div>` : ''}
         <div class="item-rarity ${rarityClass}">${item.rarity}</div>
         <div class="item-name ${rarityClass}">${item.name}</div>
         ${item.base_type ? `<div class="item-base">${item.base_type}</div>` : ''}
@@ -218,6 +219,62 @@ function createItemCard(item) {
     card.addEventListener('click', () => openItemModal(item));
 
     return card;
+}
+
+// Отрисовка сокетов с правильными цветами
+function renderSockets(socketsString) {
+    if (!socketsString) return '';
+
+    // Разделяем на группы (пробелы разделяют группы)
+    const groups = socketsString.split(' ');
+
+    const socketColors = {
+        'R': 'socket-red',      // Красный (Strength)
+        'G': 'socket-green',    // Зеленый (Dexterity)
+        'B': 'socket-blue',     // Синий (Intelligence)
+        'W': 'socket-white',    // Белый (Any)
+        'A': 'socket-abyss'     // Abyssal socket
+    };
+
+    let html = '<div class="sockets-container">';
+
+    groups.forEach((group, groupIndex) => {
+        if (groupIndex > 0) {
+            // Добавляем разделитель между группами
+            html += '<span class="socket-divider">|</span>';
+        }
+
+        html += '<div class="socket-group">';
+
+        // Парсим сокеты в группе (разделены дефисом)
+        const sockets = group.split('-');
+        sockets.forEach((socket, index) => {
+            const colorClass = socketColors[socket] || 'socket-default';
+            html += `<span class="socket ${colorClass}" title="${getSocketName(socket)}">${socket}</span>`;
+
+            // Добавляем линк между сокетами в группе
+            if (index < sockets.length - 1) {
+                html += '<span class="socket-link">-</span>';
+            }
+        });
+
+        html += '</div>';
+    });
+
+    html += '</div>';
+    return html;
+}
+
+// Получить полное название сокета
+function getSocketName(socket) {
+    const names = {
+        'R': 'Red Socket (Strength)',
+        'G': 'Green Socket (Dexterity)',
+        'B': 'Blue Socket (Intelligence)',
+        'W': 'White Socket (Any)',
+        'A': 'Abyss Socket'
+    };
+    return names[socket] || 'Unknown Socket';
 }
 
 // Открыть модальное окно с детальной информацией о предмете
@@ -244,6 +301,12 @@ function openItemModal(item) {
                 <span class="item-detail-label">Слот:</span>
                 <span class="item-detail-value">${escapeHtml(item.slot)}</span>
             </div>
+            ${item.sockets ? `
+                <div class="item-detail-row">
+                    <span class="item-detail-label">Сокеты:</span>
+                    <span class="item-detail-value">${renderSockets(item.sockets)}</span>
+                </div>
+            ` : ''}
             <div class="item-detail-row">
                 <span class="item-detail-label">Редкость:</span>
                 <span class="item-detail-value ${rarityClass}">${escapeHtml(item.rarity)}</span>
@@ -379,9 +442,15 @@ function createSkillCard(skill) {
     const card = document.createElement('div');
     card.className = 'skill-card';
 
+    // Определяем название слота
+    const slotName = skill.slot || 'Unknown Slot';
+
     card.innerHTML = `
-        <div class="skill-label">${skill.label || 'Unnamed Skill'}</div>
-        <div class="gems-list">
+        <div class="skill-header">
+            <div class="skill-label">${skill.label || 'Unnamed Skill'}</div>
+            <div class="skill-slot-badge">${slotName}</div>
+        </div>
+        <div class="gems-grid">
             ${skill.gems.map((gem, idx) => {
                 const gemColorClass = getGemColor(gem.attribute || 'int');
                 return `

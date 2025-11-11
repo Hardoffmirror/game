@@ -263,6 +263,95 @@ textarea:focus {
     margin-bottom: 10px;
 }
 
+/* Стили для сокетов */
+.item-sockets {
+    margin-bottom: 10px;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+}
+
+.sockets-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.socket-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.socket {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.85em;
+    border: 2px solid;
+    box-shadow: 0 0 10px currentColor;
+    transition: transform 0.2s;
+}
+
+.socket:hover {
+    transform: scale(1.2);
+}
+
+.socket-red {
+    background: linear-gradient(135deg, #ff6b6b, #c92a2a);
+    border-color: #ff6b6b;
+    color: #fff;
+}
+
+.socket-green {
+    background: linear-gradient(135deg, #51cf66, #2b8a3e);
+    border-color: #51cf66;
+    color: #fff;
+}
+
+.socket-blue {
+    background: linear-gradient(135deg, #4dabf7, #1864ab);
+    border-color: #4dabf7;
+    color: #fff;
+}
+
+.socket-white {
+    background: linear-gradient(135deg, #f8f9fa, #dee2e6);
+    border-color: #f8f9fa;
+    color: #333;
+}
+
+.socket-abyss {
+    background: linear-gradient(135deg, #8e44ad, #6c5ce7);
+    border-color: #a29bfe;
+    color: #fff;
+}
+
+.socket-default {
+    background: linear-gradient(135deg, #868e96, #495057);
+    border-color: #868e96;
+    color: #fff;
+}
+
+.socket-link {
+    color: #aaa;
+    font-weight: bold;
+    font-size: 0.9em;
+}
+
+.socket-divider {
+    color: #666;
+    font-weight: bold;
+    font-size: 1.2em;
+    margin: 0 4px;
+}
+
 .item-rarity {
     font-size: 0.85em;
     margin-bottom: 5px;
@@ -303,16 +392,51 @@ textarea:focus {
     margin-bottom: 20px;
 }
 
+.skill-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
 .skill-label {
     font-size: 1.3em;
     color: #ffa500;
-    margin-bottom: 15px;
     font-weight: 600;
+    flex: 1;
 }
 
-.gems-list {
+.skill-slot-badge {
+    background: rgba(29, 209, 161, 0.2);
+    border: 2px solid #1dd1a1;
+    color: #1dd1a1;
+    padding: 5px 15px;
+    border-radius: 15px;
+    font-size: 0.85em;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.gems-grid {
     display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 10px;
+}
+
+/* Для планшетов - 2 столбца */
+@media (min-width: 768px) and (max-width: 1200px) {
+    .gems-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Для больших экранов - 3 столбца */
+@media (min-width: 1200px) {
+    .gems-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
 }
 
 .gem-item {
