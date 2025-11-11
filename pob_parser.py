@@ -170,3 +170,130 @@ class PoBParser:
         }
 
         return info
+
+    def get_skills(self) -> List[Dict]:
+        """
+        Извлекает все скиллы и гемы из билда
+
+        Returns:
+            Список словарей с информацией о скиллах
+        """
+        if self.root is None:
+            raise ValueError("Билд не был распарсен. Вызовите parse() сначала.")
+
+        skills = []
+        skills_section = self.root.find('Skills')
+
+        if skills_section is None:
+            return skills
+
+        # Перебираем все группы скиллов
+        for skill_set in skills_section.findall('SkillSet'):
+            for skill in skill_set.findall('Skill'):
+                skill_data = {
+                    'label': skill.get('label', 'Unnamed'),
+                    'enabled': skill.get('enabled', 'true'),
+                    'slot': skill.get('slot', ''),
+                    'mainActiveSkill': skill.get('mainActiveSkill', ''),
+                    'gems': []
+                }
+
+                # Извлекаем гемы
+                for gem in skill.findall('Gem'):
+                    gem_data = {
+                        'nameSpec': gem.get('nameSpec', ''),
+                        'level': gem.get('level', '1'),
+                        'quality': gem.get('quality', '0'),
+                        'enabled': gem.get('enabled', 'true'),
+                        'skillId': gem.get('skillId', ''),
+                    }
+                    skill_data['gems'].append(gem_data)
+
+                skills.append(skill_data)
+
+        return skills
+
+    def get_tree(self) -> Dict:
+        """
+        Извлекает информацию о пассивном дереве
+
+        Returns:
+            Словарь с данными о пассивном дереве
+        """
+        if self.root is None:
+            raise ValueError("Билд не был распарсен. Вызовите parse() сначала.")
+
+        tree_section = self.root.find('Tree')
+
+        if tree_section is None:
+            return {'nodes': [], 'specs': []}
+
+        tree_data = {
+            'activeSpec': tree_section.get('activeSpec', '1'),
+            'specs': []
+        }
+
+        # Извлекаем спецификации дерева
+        for spec in tree_section.findall('Spec'):
+            spec_data = {
+                'treeVersion': spec.get('treeVersion', ''),
+                'classId': spec.get('classId', ''),
+                'ascendClassId': spec.get('ascendClassId', ''),
+                'nodes': spec.get('nodes', '').split(',') if spec.get('nodes') else []
+            }
+            tree_data['specs'].append(spec_data)
+
+        return tree_data
+
+    def get_config(self) -> Dict:
+        """
+        Извлекает конфигурацию билда
+
+        Returns:
+            Словарь с настройками конфигурации
+        """
+        if self.root is None:
+            raise ValueError("Билд не был распарсен. Вызовите parse() сначала.")
+
+        config_section = self.root.find('Config')
+
+        if config_section is None:
+            return {}
+
+        config = {}
+        for input_elem in config_section.findall('Input'):
+            name = input_elem.get('name', '')
+            value = input_elem.get('string') or input_elem.get('number') or input_elem.get('boolean', '')
+            if name:
+                config[name] = value
+
+        return config
+
+    def get_notes(self) -> str:
+        """
+        Извлекает заметки билда
+
+        Returns:
+            Текст заметок
+        """
+        if self.root is None:
+            raise ValueError("Билд не был распарсен. Вызовите parse() сначала.")
+
+        notes_elem = self.root.find('Notes')
+        return notes_elem.text if notes_elem is not None and notes_elem.text else ""
+
+    def get_all_data(self) -> Dict:
+        """
+        Извлекает все данные из билда
+
+        Returns:
+            Словарь со всеми данными билда
+        """
+        return {
+            'build_info': self.get_build_info(),
+            'items': self.get_items(),
+            'skills': self.get_skills(),
+            'tree': self.get_tree(),
+            'config': self.get_config(),
+            'notes': self.get_notes()
+        }

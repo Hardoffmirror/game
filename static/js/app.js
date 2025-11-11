@@ -1,0 +1,265 @@
+// Глобальная переменная для хранения данных билда
+let buildData = null;
+
+// Инициализация при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    setupEventListeners();
+});
+
+// Настройка слушателей событий
+function setupEventListeners() {
+    const parseBtn = document.getElementById('parseBtn');
+    const buildCodeInput = document.getElementById('buildCode');
+
+    parseBtn.addEventListener('click', parseBuild);
+
+    // Позволяем парсить по Ctrl+Enter
+    buildCodeInput.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.key === 'Enter') {
+            parseBuild();
+        }
+    });
+
+    // Настройка вкладок
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            switchTab(this.dataset.tab);
+        });
+    });
+}
+
+// Парсинг билда
+async function parseBuild() {
+    const buildCode = document.getElementById('buildCode').value.trim();
+    const errorDiv = document.getElementById('error');
+    const loadingDiv = document.getElementById('loading');
+    const resultsDiv = document.getElementById('results');
+
+    // Скрываем предыдущие результаты и ошибки
+    errorDiv.style.display = 'none';
+    resultsDiv.style.display = 'none';
+
+    if (!buildCode) {
+        showError('Пожалуйста, введите код билда');
+        return;
+    }
+
+    // Показываем загрузку
+    loadingDiv.style.display = 'block';
+
+    try {
+        const response = await fetch('/parse', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ build_code: buildCode })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            buildData = data.data;
+            displayResults();
+            resultsDiv.style.display = 'block';
+        } else {
+            showError(data.error || 'Произошла ошибка при парсинге');
+        }
+    } catch (error) {
+        showError('Ошибка соединения с сервером: ' + error.message);
+    } finally {
+        loadingDiv.style.display = 'none';
+    }
+}
+
+// Показать ошибку
+function showError(message) {
+    const errorDiv = document.getElementById('error');
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
+}
+
+// Отобразить результаты
+function displayResults() {
+    displayBuildInfo();
+    displayItems();
+    displaySkills();
+    displayTree();
+    displayConfig();
+    displayNotes();
+
+    // Показываем первую вкладку
+    switchTab('overview');
+}
+
+// Переключение вкладок
+function switchTab(tabName) {
+    // Убираем активный класс со всех вкладок
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+    });
+
+    // Добавляем активный класс к выбранной вкладке
+    document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+    document.getElementById(tabName).classList.add('active');
+}
+
+// Отображение информации о билде
+function displayBuildInfo() {
+    const info = buildData.build_info;
+    document.getElementById('className').textContent = info.className;
+    document.getElementById('ascendClass').textContent = info.ascendClassName;
+    document.getElementById('level').textContent = info.level;
+}
+
+// Отображение предметов
+function displayItems() {
+    const itemsContainer = document.getElementById('itemsList');
+    itemsContainer.innerHTML = '';
+
+    buildData.items.forEach(item => {
+        const itemCard = createItemCard(item);
+        itemsContainer.appendChild(itemCard);
+    });
+}
+
+// Создание карточки предмета
+function createItemCard(item) {
+    const card = document.createElement('div');
+    card.className = 'item-card';
+
+    const rarityClass = `rarity-${item.rarity}`;
+
+    card.innerHTML = `
+        <div class="item-slot">Слот: ${item.slot}</div>
+        <div class="item-rarity ${rarityClass}">${item.rarity}</div>
+        <div class="item-name ${rarityClass}">${item.name}</div>
+        ${item.base_type ? `<div class="item-base">${item.base_type}</div>` : ''}
+        ${item.mods.length > 0 ? `
+            <div class="item-mods">
+                ${item.mods.map(mod => `<div class="item-mod">• ${escapeHtml(mod)}</div>`).join('')}
+            </div>
+        ` : ''}
+        <button class="copy-btn" onclick="copyItemText('${escapeHtml(item.name)}')">📋 Копировать название</button>
+    `;
+
+    return card;
+}
+
+// Отображение скиллов
+function displaySkills() {
+    const skillsContainer = document.getElementById('skillsList');
+    skillsContainer.innerHTML = '';
+
+    if (buildData.skills.length === 0) {
+        skillsContainer.innerHTML = '<p>Скиллы не найдены</p>';
+        return;
+    }
+
+    buildData.skills.forEach(skill => {
+        const skillCard = createSkillCard(skill);
+        skillsContainer.appendChild(skillCard);
+    });
+}
+
+// Создание карточки скилла
+function createSkillCard(skill) {
+    const card = document.createElement('div');
+    card.className = 'skill-card';
+
+    card.innerHTML = `
+        <div class="skill-label">${skill.label || 'Unnamed Skill'}</div>
+        <div class="gems-list">
+            ${skill.gems.map(gem => `
+                <div class="gem-item">
+                    <span class="gem-name">${gem.nameSpec}</span>
+                    <span class="gem-stats">Lvl: ${gem.level} | Q: ${gem.quality}%</span>
+                </div>
+            `).join('')}
+        </div>
+    `;
+
+    return card;
+}
+
+// Отображение дерева
+function displayTree() {
+    const treeContainer = document.getElementById('treeInfo');
+    const tree = buildData.tree;
+
+    if (tree.specs.length === 0) {
+        treeContainer.innerHTML = '<p>Информация о дереве не найдена</p>';
+        return;
+    }
+
+    const spec = tree.specs[0];
+    const nodesCount = spec.nodes.filter(n => n).length;
+
+    treeContainer.innerHTML = `
+        <div class="tree-info">
+            <div class="nodes-count">Выбрано узлов: ${nodesCount}</div>
+            <div class="config-value">Версия дерева: ${spec.treeVersion}</div>
+            <div class="config-value">Class ID: ${spec.classId}</div>
+            <div class="config-value">Ascend Class ID: ${spec.ascendClassId}</div>
+        </div>
+    `;
+}
+
+// Отображение конфигурации
+function displayConfig() {
+    const configContainer = document.getElementById('configList');
+    const config = buildData.config;
+
+    if (Object.keys(config).length === 0) {
+        configContainer.innerHTML = '<p>Конфигурация не найдена</p>';
+        return;
+    }
+
+    configContainer.innerHTML = '';
+    const configGrid = document.createElement('div');
+    configGrid.className = 'config-grid';
+
+    for (const [name, value] of Object.entries(config)) {
+        const configItem = document.createElement('div');
+        configItem.className = 'config-item';
+        configItem.innerHTML = `
+            <div class="config-name">${name}</div>
+            <div class="config-value">${value}</div>
+        `;
+        configGrid.appendChild(configItem);
+    }
+
+    configContainer.appendChild(configGrid);
+}
+
+// Отображение заметок
+function displayNotes() {
+    const notesContainer = document.getElementById('notesContent');
+    const notes = buildData.notes;
+
+    if (!notes || notes.trim() === '') {
+        notesContainer.innerHTML = '<p>Заметки отсутствуют</p>';
+        return;
+    }
+
+    notesContainer.innerHTML = `<div class="notes-content">${escapeHtml(notes)}</div>`;
+}
+
+// Копирование текста
+function copyItemText(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        alert('Скопировано: ' + text);
+    }).catch(err => {
+        console.error('Ошибка копирования:', err);
+    });
+}
+
+// Экранирование HTML
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}

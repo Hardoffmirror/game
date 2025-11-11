@@ -1,1 +1,1 @@
-# Requirements for PoE Build Converter
+Flask==3.0.0
