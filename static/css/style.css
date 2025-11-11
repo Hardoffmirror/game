@@ -861,6 +861,14 @@ textarea:focus {
     margin-bottom: 30px;
 }
 
+.tree-nodes-section {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 25px;
+    border-radius: 15px;
+    margin-bottom: 25px;
+    border: 2px solid rgba(95, 39, 205, 0.2);
+}
+
 .tree-stat-card {
     background: linear-gradient(135deg, rgba(255, 165, 0, 0.15) 0%, rgba(255, 107, 107, 0.15) 100%);
     border: 2px solid rgba(255, 165, 0, 0.4);

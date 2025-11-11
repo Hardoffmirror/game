@@ -1,6 +1,9 @@
 // Глобальная переменная для хранения данных билда
 let buildData = null;
 
+// Глобальная переменная для визуализатора дерева
+let treeVisualizer = null;
+
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', function() {
     setupEventListeners();
@@ -479,7 +482,7 @@ function copyAllGems(gemNames) {
 }
 
 // Отображение дерева
-function displayTree() {
+async function displayTree() {
     const treeContainer = document.getElementById('treeInfo');
     const tree = buildData.tree;
 
@@ -530,15 +533,36 @@ function displayTree() {
 
         <div class="tree-visualization-section">
             <h3 style="color: #ffa500; margin: 30px 0 15px 0;">
-                <span style="font-size: 1.5em;">🗺️</span> Визуализация дерева умений
+                <span style="font-size: 1.5em;">🗺️</span> Интерактивная визуализация дерева
             </h3>
             <div class="tree-visual-info">
                 <p style="color: #aaa; margin-bottom: 15px;">
                     Дерево пассивных умений содержит <strong style="color: #ffa500;">${nodesCount}</strong> выбранных узлов.
-                    Ниже представлены все ID узлов из вашего билда.
+                    Используйте колесо мыши для зума, перетаскивайте для навигации.
                 </p>
             </div>
 
+            <div id="tree-canvas-container" style="position: relative; width: 100%; margin-bottom: 20px;">
+                <!-- Canvas будет вставлен сюда -->
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+                <button class="copy-btn" onclick="centerTreeView()">
+                    🎯 Центрировать дерево
+                </button>
+                <button class="copy-btn" onclick="zoomInTree()">
+                    🔍+ Увеличить
+                </button>
+                <button class="copy-btn" onclick="zoomOutTree()">
+                    🔍- Уменьшить
+                </button>
+            </div>
+        </div>
+
+        <div class="tree-nodes-section">
+            <h3 style="color: #ffa500; margin: 30px 0 15px 0;">
+                <span style="font-size: 1.5em;">📋</span> Список узлов
+            </h3>
             <div class="tree-nodes-grid">
                 ${nodes.slice(0, 100).map((nodeId, index) => `
                     <div class="tree-node-pill" title="Node ID: ${nodeId}">
@@ -559,10 +583,10 @@ function displayTree() {
 
         <div class="tree-export-section">
             <h3 style="color: #ffa500; margin: 30px 0 15px 0;">
-                <span style="font-size: 1.5em;">📋</span> Экспорт и планировщики
+                <span style="font-size: 1.5em;">🔗</span> Экспорт и планировщики
             </h3>
             <p style="color: #aaa; margin-bottom: 15px;">
-                Используйте внешние планировщики для визуализации вашего дерева умений:
+                Используйте внешние планировщики для детального просмотра узлов:
             </p>
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                 <button class="copy-btn" onclick="copyTreeNodes()">
@@ -580,13 +604,20 @@ function displayTree() {
             </div>
             <div style="margin-top: 20px; padding: 15px; background: rgba(255, 165, 0, 0.1); border-radius: 10px; border: 2px solid rgba(255, 165, 0, 0.3);">
                 <p style="color: #ddd; font-size: 0.95em;">
-                    💡 <strong>Совет:</strong> Скопируйте ID узлов и вставьте их в планировщик для детального просмотра каждого узла и его бонусов.
+                    💡 <strong>Совет:</strong> Наведите курсор на узлы в визуализации для просмотра информации. Зеленые узлы - взятые в вашем билде.
                 </p>
             </div>
         </div>
     `;
 
     treeContainer.innerHTML = html;
+
+    // Инициализируем визуализатор дерева
+    const canvasContainer = document.getElementById('tree-canvas-container');
+    if (canvasContainer && typeof PassiveTreeVisualizer !== 'undefined') {
+        treeVisualizer = new PassiveTreeVisualizer('passiveTreeCanvas', 'tree-canvas-container');
+        await treeVisualizer.initialize(canvasContainer, nodes);
+    }
 }
 
 // Получить название класса по ID
@@ -707,4 +738,25 @@ function getPoETradeLink(itemName) {
     };
     const encodedQuery = encodeURIComponent(JSON.stringify(query));
     return `https://www.pathofexile.com/trade/search/Standard?q=${encodedQuery}`;
+}
+
+// Функции управления деревом
+function centerTreeView() {
+    if (treeVisualizer) {
+        treeVisualizer.centerTree();
+    }
+}
+
+function zoomInTree() {
+    if (treeVisualizer) {
+        treeVisualizer.zoom = Math.min(treeVisualizer.maxZoom, treeVisualizer.zoom * 1.2);
+        treeVisualizer.render();
+    }
+}
+
+function zoomOutTree() {
+    if (treeVisualizer) {
+        treeVisualizer.zoom = Math.max(treeVisualizer.minZoom, treeVisualizer.zoom / 1.2);
+        treeVisualizer.render();
+    }
 }
