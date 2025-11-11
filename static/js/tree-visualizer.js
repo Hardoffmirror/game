@@ -361,29 +361,54 @@ class PassiveTreeVisualizer {
         this.drawZoomInfo();
     }
 
-    // Отрисовка сетки
+    // Отрисовка сетки и фона
     drawGrid() {
         const ctx = this.ctx;
-        const gridSize = 100 * this.zoom;
         const width = this.canvas.width;
         const height = this.canvas.height;
 
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+        // Рисуем радиальный градиент для фона
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const maxRadius = Math.sqrt(width * width + height * height) / 2;
+
+        const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, maxRadius);
+        gradient.addColorStop(0, 'rgba(30, 30, 50, 0.3)');
+        gradient.addColorStop(0.5, 'rgba(20, 20, 40, 0.5)');
+        gradient.addColorStop(1, 'rgba(10, 10, 20, 0.7)');
+
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
+
+        // Рисуем орбиты (круги) вокруг центра
+        const orbitCount = 8;
+        const baseOrbitRadius = 100;
+
+        ctx.strokeStyle = 'rgba(100, 150, 200, 0.1)';
         ctx.lineWidth = 1;
 
-        // Вертикальные линии
-        for (let x = this.offsetX % gridSize; x < width; x += gridSize) {
+        for (let i = 1; i <= orbitCount; i++) {
+            const radius = baseOrbitRadius * i * this.zoom;
+            const screenCenter = this.worldToScreen(0, 0);
+
             ctx.beginPath();
-            ctx.moveTo(x, 0);
-            ctx.lineTo(x, height);
+            ctx.arc(screenCenter.x, screenCenter.y, radius, 0, Math.PI * 2);
             ctx.stroke();
         }
 
-        // Горизонтальные линии
-        for (let y = this.offsetY % gridSize; y < height; y += gridSize) {
+        // Рисуем линии от центра (как спицы)
+        const spokeCount = 12;
+        ctx.strokeStyle = 'rgba(100, 150, 200, 0.08)';
+
+        for (let i = 0; i < spokeCount; i++) {
+            const angle = (Math.PI * 2 * i) / spokeCount;
+            const screenCenter = this.worldToScreen(0, 0);
+            const endX = screenCenter.x + Math.cos(angle) * maxRadius;
+            const endY = screenCenter.y + Math.sin(angle) * maxRadius;
+
             ctx.beginPath();
-            ctx.moveTo(0, y);
-            ctx.lineTo(width, y);
+            ctx.moveTo(screenCenter.x, screenCenter.y);
+            ctx.lineTo(endX, endY);
             ctx.stroke();
         }
     }
@@ -391,8 +416,6 @@ class PassiveTreeVisualizer {
     // Отрисовка связей
     drawConnections() {
         const ctx = this.ctx;
-
-        ctx.lineWidth = 2;
 
         for (const [nodeId, node] of Object.entries(this.treeData.nodes)) {
             if (!node.out || node.out.length === 0) continue;
@@ -410,21 +433,54 @@ class PassiveTreeVisualizer {
                 const toScreen = this.worldToScreen(toPos.x, toPos.y);
                 const isToAllocated = this.allocatedNodes.has(targetId.toString());
 
+                // Проверка на видимость линии
+                if (!this.isLineVisible(fromScreen, toScreen)) continue;
+
                 // Цвет связи зависит от того, взяты ли оба узла
                 if (isFromAllocated && isToAllocated) {
-                    ctx.strokeStyle = 'rgba(29, 209, 161, 0.8)';
+                    // Активная связь - с свечением
+                    ctx.save();
+                    ctx.shadowBlur = 8;
+                    ctx.shadowColor = 'rgba(29, 209, 161, 0.8)';
+                    ctx.strokeStyle = 'rgba(29, 209, 161, 0.9)';
                     ctx.lineWidth = 3;
-                } else {
-                    ctx.strokeStyle = 'rgba(100, 100, 120, 0.3)';
+                } else if (isFromAllocated || isToAllocated) {
+                    // Частично активная
+                    ctx.strokeStyle = 'rgba(100, 150, 180, 0.5)';
                     ctx.lineWidth = 2;
+                } else {
+                    // Неактивная
+                    ctx.strokeStyle = 'rgba(80, 80, 100, 0.25)';
+                    ctx.lineWidth = 1.5;
                 }
 
+                // Рисуем линию
                 ctx.beginPath();
                 ctx.moveTo(fromScreen.x, fromScreen.y);
                 ctx.lineTo(toScreen.x, toScreen.y);
                 ctx.stroke();
+
+                if (isFromAllocated && isToAllocated) {
+                    ctx.restore();
+                }
             }
         }
+    }
+
+    // Проверка видимости линии на экране
+    isLineVisible(p1, p2) {
+        const margin = 50;
+        const minX = -margin;
+        const minY = -margin;
+        const maxX = this.canvas.width + margin;
+        const maxY = this.canvas.height + margin;
+
+        return !(
+            (p1.x < minX && p2.x < minX) ||
+            (p1.x > maxX && p2.x > maxX) ||
+            (p1.y < minY && p2.y < minY) ||
+            (p1.y > maxY && p2.y > maxY)
+        );
     }
 
     // Отрисовка узлов
@@ -444,50 +500,133 @@ class PassiveTreeVisualizer {
             const isAllocated = this.allocatedNodes.has(nodeId);
             const isHovered = this.hoveredNode && this.hoveredNode.id == nodeId;
 
-            // Размер узла зависит от типа
-            let radius = 5;
-            let fillColor = '#4a4a6a';
-            let strokeColor = '#6a6a8a';
+            // Размер и стиль узла зависит от типа
+            let radius = 6;
+            let innerRadius = 4;
+            let outerGlow = false;
 
             if (node.type === 'Notable') {
-                radius = 8;
-                fillColor = '#5a5a7a';
-                strokeColor = '#8a8aaa';
+                radius = 10;
+                innerRadius = 7;
+                outerGlow = true;
             } else if (node.type === 'Keystone') {
-                radius = 12;
-                fillColor = '#7a4a4a';
-                strokeColor = '#aa6a6a';
+                radius = 15;
+                innerRadius = 11;
+                outerGlow = true;
             }
 
-            // Если узел взят в билде
+            const scaledRadius = radius * this.zoom;
+            const scaledInnerRadius = innerRadius * this.zoom;
+
+            // Цвета в зависимости от состояния
+            let colors = {
+                outer: '#4a4a6a',
+                middle: '#3a3a5a',
+                inner: '#2a2a4a',
+                glow: '#5a5a8a'
+            };
+
+            if (node.type === 'Notable') {
+                colors = {
+                    outer: '#6a6aaa',
+                    middle: '#5a5a9a',
+                    inner: '#4a4a8a',
+                    glow: '#7a7aba'
+                };
+            } else if (node.type === 'Keystone') {
+                colors = {
+                    outer: '#aa6a6a',
+                    middle: '#9a5a5a',
+                    inner: '#8a4a4a',
+                    glow: '#ba7a7a'
+                };
+            }
+
+            // Если узел взят
             if (isAllocated) {
-                fillColor = '#1dd1a1';
-                strokeColor = '#1dd1a1';
-                radius += 2;
+                colors = {
+                    outer: '#1dd1a1',
+                    middle: '#17b88d',
+                    inner: '#119e79',
+                    glow: '#23e4b4'
+                };
+                outerGlow = true;
             }
 
-            // Если наведен курсор
-            if (isHovered) {
-                radius += 4;
+            ctx.save();
 
-                // Свечение вокруг узла
-                ctx.shadowBlur = 20;
-                ctx.shadowColor = isAllocated ? '#1dd1a1' : '#ffa500';
-            } else {
-                ctx.shadowBlur = 0;
+            // Внешнее свечение для взятых/важных узлов
+            if (outerGlow || isHovered) {
+                const glowRadius = scaledRadius + (isHovered ? 8 : 4);
+                const gradient = ctx.createRadialGradient(
+                    screenPos.x, screenPos.y, scaledRadius,
+                    screenPos.x, screenPos.y, glowRadius
+                );
+                gradient.addColorStop(0, isHovered ? 'rgba(255, 165, 0, 0.6)' : colors.glow + '80');
+                gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(screenPos.x, screenPos.y, glowRadius, 0, Math.PI * 2);
+                ctx.fill();
             }
 
-            // Рисуем внешнюю обводку
+            // Основное тело узла с градиентом
+            const nodeGradient = ctx.createRadialGradient(
+                screenPos.x - scaledRadius * 0.3,
+                screenPos.y - scaledRadius * 0.3,
+                0,
+                screenPos.x,
+                screenPos.y,
+                scaledRadius
+            );
+            nodeGradient.addColorStop(0, colors.inner);
+            nodeGradient.addColorStop(0.6, colors.middle);
+            nodeGradient.addColorStop(1, colors.outer);
+
+            ctx.fillStyle = nodeGradient;
             ctx.beginPath();
-            ctx.arc(screenPos.x, screenPos.y, radius * this.zoom, 0, Math.PI * 2);
-            ctx.fillStyle = fillColor;
+            ctx.arc(screenPos.x, screenPos.y, scaledRadius, 0, Math.PI * 2);
             ctx.fill();
 
-            ctx.strokeStyle = strokeColor;
-            ctx.lineWidth = 2;
+            // Обводка
+            ctx.strokeStyle = colors.outer;
+            ctx.lineWidth = isAllocated ? 3 : 2;
+            ctx.beginPath();
+            ctx.arc(screenPos.x, screenPos.y, scaledRadius, 0, Math.PI * 2);
             ctx.stroke();
 
-            ctx.shadowBlur = 0;
+            // Внутренний светлый круг для глубины
+            if (scaledInnerRadius > 2) {
+                const innerGradient = ctx.createRadialGradient(
+                    screenPos.x - scaledInnerRadius * 0.4,
+                    screenPos.y - scaledInnerRadius * 0.4,
+                    0,
+                    screenPos.x,
+                    screenPos.y,
+                    scaledInnerRadius
+                );
+                innerGradient.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
+                innerGradient.addColorStop(1, 'rgba(255, 255, 255, 0.05)');
+
+                ctx.fillStyle = innerGradient;
+                ctx.beginPath();
+                ctx.arc(screenPos.x, screenPos.y, scaledInnerRadius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Дополнительное свечение при наведении
+            if (isHovered) {
+                ctx.shadowBlur = 25;
+                ctx.shadowColor = isAllocated ? '#1dd1a1' : '#ffa500';
+                ctx.strokeStyle = isAllocated ? '#23e4b4' : '#ffb733';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.arc(screenPos.x, screenPos.y, scaledRadius + 2, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            ctx.restore();
         }
     }
 

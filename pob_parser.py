@@ -149,14 +149,8 @@ class PoBParser:
             if current_section:
                 mods.extend(current_section)
 
-        # Формируем URL для картинки используя pobb.in
-        # Приоритет: базовый тип > название
-        item_for_icon = base_type if base_type else name
-        # Очищаем название для URL (убираем специальные символы)
-        item_for_icon_clean = item_for_icon.replace("'", "").replace('"', '').replace(' ', '')
-
-        # Используем assets.pobb.in для изображений
-        icon_url = f"https://assets.pobb.in/1/{item_for_icon_clean}.webp"
+        # Формируем URL для картинки
+        icon_url = self._get_item_icon_url(name, base_type, slot_name)
 
         return {
             'slot': slot_name,
@@ -168,6 +162,79 @@ class PoBParser:
             'raw_text': item_text,
             'icon_url': icon_url
         }
+
+    def _get_item_icon_url(self, name: str, base_type: str, slot_name: str) -> str:
+        """
+        Получает URL иконки предмета
+
+        Args:
+            name: Название предмета
+            base_type: Базовый тип предмета
+            slot_name: Название слота
+
+        Returns:
+            URL иконки предмета
+        """
+        # Используем базовый тип, если он есть, иначе название
+        item_for_icon = base_type if base_type else name
+
+        # Убираем артикли и лишние слова
+        item_for_icon = item_for_icon.replace("Superior ", "")
+
+        # Специальные случаи для известных уникальных предметов
+        unique_items_mapping = {
+            "Tabula Rasa": "TabulaRasa",
+            "Abyssus": "Abyssus",
+            "Starkonja's Head": "StarkonjasHead",
+            "The Vertex": "TheVertex",
+            "Devouring Diadem": "DevouringDiadem",
+        }
+
+        if name in unique_items_mapping:
+            item_name_clean = unique_items_mapping[name]
+        else:
+            # Очищаем название для URL
+            item_name_clean = item_for_icon.replace("'", "").replace('"', '').replace(' ', '')
+
+        # Пробуем несколько источников иконок
+        # 1. pobb.in assets
+        icon_urls = [
+            f"https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQXJtb3Vycy97item_name_clean}IiwicyI6MC4yNSwidiI6MX1d/a8c5f4e5e3/{item_name_clean}.png",
+            f"https://assets.pobb.in/1/{item_name_clean}.webp",
+            f"https://web.poecdn.com/image/Art/2DItems/{self._get_item_category(slot_name)}/{item_name_clean}.png"
+        ]
+
+        # Возвращаем первый URL (в реальности можно сделать проверку доступности)
+        return icon_urls[0]
+
+    def _get_item_category(self, slot_name: str) -> str:
+        """Определяет категорию предмета для URL иконки"""
+        slot_lower = slot_name.lower()
+
+        if 'weapon' in slot_lower:
+            return 'Weapons'
+        elif 'helm' in slot_lower or 'head' in slot_lower:
+            return 'Armours/Helmets'
+        elif 'body' in slot_lower or 'chest' in slot_lower:
+            return 'Armours/BodyArmours'
+        elif 'gloves' in slot_lower:
+            return 'Armours/Gloves'
+        elif 'boots' in slot_lower:
+            return 'Armours/Boots'
+        elif 'shield' in slot_lower:
+            return 'Armours/Shields'
+        elif 'ring' in slot_lower:
+            return 'Rings'
+        elif 'amulet' in slot_lower:
+            return 'Amulets'
+        elif 'belt' in slot_lower:
+            return 'Belts'
+        elif 'flask' in slot_lower:
+            return 'Flasks'
+        elif 'jewel' in slot_lower:
+            return 'Jewels'
+        else:
+            return 'Armours'
 
     def get_build_info(self) -> Dict:
         """

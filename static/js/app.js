@@ -201,9 +201,14 @@ function createItemCard(item) {
     card.innerHTML = `
         ${item.icon_url ? `
             <div class="item-icon-wrapper">
-                <img src="${item.icon_url}" alt="${escapeHtml(item.name)}" class="item-icon" onerror="this.style.display='none'">
+                <img src="${item.icon_url}" alt="${escapeHtml(item.name)}" class="item-icon"
+                     onerror="handleItemIconError(this, '${escapeHtml(item.slot)}')">
             </div>
-        ` : ''}
+        ` : `
+            <div class="item-icon-wrapper">
+                <div class="item-icon-placeholder">${getItemSlotIcon(item.slot)}</div>
+            </div>
+        `}
         <div class="item-slot">Слот: ${item.slot}</div>
         ${item.sockets ? `<div class="item-sockets">${renderSockets(item.sockets)}</div>` : ''}
         <div class="item-rarity ${rarityClass}">${item.rarity}</div>
@@ -738,6 +743,39 @@ function getPoETradeLink(itemName) {
     };
     const encodedQuery = encodeURIComponent(JSON.stringify(query));
     return `https://www.pathofexile.com/trade/search/Standard?q=${encodedQuery}`;
+}
+
+// Обработка ошибки загрузки иконки предмета
+function handleItemIconError(img, slot) {
+    // Заменяем на placeholder с иконкой слота
+    const placeholder = document.createElement('div');
+    placeholder.className = 'item-icon-placeholder';
+    placeholder.innerHTML = getItemSlotIcon(slot);
+    img.parentElement.replaceChild(placeholder, img);
+}
+
+// Получить иконку для слота
+function getItemSlotIcon(slot) {
+    const slotIcons = {
+        'Weapon 1': '⚔️',
+        'Weapon 2': '🗡️',
+        'Helmet': '🪖',
+        'Body Armour': '🛡️',
+        'Gloves': '🧤',
+        'Boots': '👢',
+        'Amulet': '📿',
+        'Ring 1': '💍',
+        'Ring 2': '💍',
+        'Belt': '📿',
+        'Flask 1': '⚗️',
+        'Flask 2': '⚗️',
+        'Flask 3': '⚗️',
+        'Flask 4': '⚗️',
+        'Flask 5': '⚗️',
+        'Jewel': '💎'
+    };
+
+    return slotIcons[slot] || '📦';
 }
 
 // Функции управления деревом

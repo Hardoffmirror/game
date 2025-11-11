@@ -769,6 +769,24 @@ textarea:focus {
     margin-bottom: 15px;
     background: rgba(0, 0, 0, 0.3);
     border-radius: 10px;
+    position: relative;
+    overflow: hidden;
+}
+
+.item-icon-wrapper::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle, rgba(255, 165, 0, 0.1) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.item-card:hover .item-icon-wrapper::before {
+    opacity: 1;
 }
 
 .item-icon {
@@ -776,6 +794,23 @@ textarea:focus {
     max-height: 100px;
     object-fit: contain;
     filter: drop-shadow(0 0 10px rgba(255, 165, 0, 0.5));
+    transition: transform 0.3s;
+}
+
+.item-card:hover .item-icon {
+    transform: scale(1.1);
+}
+
+.item-icon-placeholder {
+    font-size: 60px;
+    opacity: 0.6;
+    filter: drop-shadow(0 0 5px rgba(255, 165, 0, 0.3));
+    transition: all 0.3s;
+}
+
+.item-card:hover .item-icon-placeholder {
+    transform: scale(1.1);
+    opacity: 0.8;
 }
 
 .modal-item-icon-wrapper {
