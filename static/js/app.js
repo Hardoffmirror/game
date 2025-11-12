@@ -787,14 +787,14 @@ function centerTreeView() {
 
 function zoomInTree() {
     if (treeVisualizer) {
-        treeVisualizer.zoom = Math.min(treeVisualizer.maxZoom, treeVisualizer.zoom * 1.2);
+        treeVisualizer.zoomLevel = Math.min(treeVisualizer.maxZoomLevel, treeVisualizer.zoomLevel + 1);
         treeVisualizer.render();
     }
 }
 
 function zoomOutTree() {
     if (treeVisualizer) {
-        treeVisualizer.zoom = Math.max(treeVisualizer.minZoom, treeVisualizer.zoom / 1.2);
+        treeVisualizer.zoomLevel = Math.max(treeVisualizer.minZoomLevel, treeVisualizer.zoomLevel - 1);
         treeVisualizer.render();
     }
 }

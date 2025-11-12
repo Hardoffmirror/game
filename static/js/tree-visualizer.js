@@ -11,12 +11,15 @@ class PassiveTreeVisualizer {
 
         this.ctx = this.canvas.getContext('2d');
 
-        // Параметры визуализации
-        this.zoom = 1.0;
-        this.minZoom = 0.3;
-        this.maxZoom = 3.0;
+        // Параметры визуализации (как в PathOfBuilding)
+        this.zoomLevel = 0; // Уровень зума от -5 до 12
+        this.minZoomLevel = -5;
+        this.maxZoomLevel = 12;
         this.offsetX = 0;
         this.offsetY = 0;
+
+        // Вычисляем реальный зум как 1.2^zoomLevel (как в PoB)
+        this.getZoom = () => Math.pow(1.2, this.zoomLevel);
 
         // Состояние перетаскивания
         this.isDragging = false;
@@ -36,7 +39,7 @@ class PassiveTreeVisualizer {
 
     // Установка слушателей событий
     setupEventListeners() {
-        // Обработка колесика мыши для зума
+        // Обработка колесика мыши для зума (как в PathOfBuilding)
         this.canvas.addEventListener('wheel', (e) => {
             e.preventDefault();
 
@@ -44,17 +47,20 @@ class PassiveTreeVisualizer {
             const mouseX = e.clientX - rect.left;
             const mouseY = e.clientY - rect.top;
 
-            const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
-            const newZoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.zoom * zoomFactor));
+            // Изменяем уровень зума (как в PoB)
+            const zoomDelta = e.deltaY < 0 ? 1 : -1;
+            const newZoomLevel = Math.max(this.minZoomLevel, Math.min(this.maxZoomLevel, this.zoomLevel + zoomDelta));
 
-            // Зум к курсору
-            const worldX = (mouseX - this.offsetX) / this.zoom;
-            const worldY = (mouseY - this.offsetY) / this.zoom;
+            // Зум к курсору - сохраняем точку под курсором неподвижной
+            const oldZoom = this.getZoom();
+            const worldX = (mouseX - this.offsetX) / oldZoom;
+            const worldY = (mouseY - this.offsetY) / oldZoom;
 
-            this.zoom = newZoom;
+            this.zoomLevel = newZoomLevel;
+            const newZoom = this.getZoom();
 
-            this.offsetX = mouseX - worldX * this.zoom;
-            this.offsetY = mouseY - worldY * this.zoom;
+            this.offsetX = mouseX - worldX * newZoom;
+            this.offsetY = mouseY - worldY * newZoom;
 
             this.render();
         });
@@ -116,9 +122,9 @@ class PassiveTreeVisualizer {
     // Загрузка данных дерева
     async loadTreeData(treeVersion = '3.25') {
         try {
-            // Используем статические данные дерева
-            // В реальном приложении нужно загружать актуальную версию с официального API
-            const response = await fetch(`https://www.pathofexile.com/passive-skill-tree/3.25.0/data.json`);
+            // Загружаем актуальные данные дерева с официального API
+            // Используем CORS proxy для обхода ограничений
+            const response = await fetch(`https://www.pathofexile.com/passive-skill-tree/${treeVersion}.0/data.json`);
 
             if (!response.ok) {
                 // Если не удалось загрузить, используем упрощенную визуализацию
@@ -130,11 +136,59 @@ class PassiveTreeVisualizer {
             this.treeData = await response.json();
             console.log('Данные дерева загружены:', this.treeData);
 
+            // Обрабатываем данные дерева для улучшения производительности
+            this.processTreeData();
+
             // Кэшируем позиции узлов для быстрого доступа
             this.cacheNodePositions();
         } catch (error) {
             console.error('Ошибка загрузки данных дерева:', error);
             this.createSimplifiedTree();
+        }
+    }
+
+    // Обработка данных дерева (улучшение структуры по образцу PoB)
+    processTreeData() {
+        if (!this.treeData || !this.treeData.nodes) return;
+
+        // Создаем индекс групп для быстрого доступа
+        this.nodeGroups = new Map();
+
+        if (this.treeData.groups) {
+            for (const [groupId, group] of Object.entries(this.treeData.groups)) {
+                this.nodeGroups.set(groupId, {
+                    x: group.x || 0,
+                    y: group.y || 0,
+                    orbits: group.orbits || [],
+                    nodes: group.nodes || []
+                });
+            }
+        }
+
+        // Обрабатываем узлы и добавляем дополнительные свойства
+        for (const [nodeId, node] of Object.entries(this.treeData.nodes)) {
+            // Определяем тип узла на основе данных
+            if (!node.type) {
+                if (node.isKeystone) {
+                    node.type = 'Keystone';
+                } else if (node.isNotable) {
+                    node.type = 'Notable';
+                } else if (node.isJewelSocket) {
+                    node.type = 'JewelSocket';
+                } else if (node.isMastery) {
+                    node.type = 'Mastery';
+                } else {
+                    node.type = 'Normal';
+                }
+            }
+
+            // Создаем массив связей для удобства
+            if (node.out && !Array.isArray(node.out)) {
+                node.out = Object.values(node.out);
+            }
+            if (node.in && !Array.isArray(node.in)) {
+                node.in = Object.values(node.in);
+            }
         }
     }
 
@@ -233,17 +287,19 @@ class PassiveTreeVisualizer {
 
     // Преобразование мировых координат в экранные
     worldToScreen(x, y) {
+        const zoom = this.getZoom();
         return {
-            x: x * this.zoom + this.offsetX,
-            y: y * this.zoom + this.offsetY
+            x: x * zoom + this.offsetX,
+            y: y * zoom + this.offsetY
         };
     }
 
     // Преобразование экранных координат в мировые
     screenToWorld(x, y) {
+        const zoom = this.getZoom();
         return {
-            x: (x - this.offsetX) / this.zoom,
-            y: (y - this.offsetY) / this.zoom
+            x: (x - this.offsetX) / zoom,
+            y: (y - this.offsetY) / zoom
         };
     }
 
@@ -256,7 +312,7 @@ class PassiveTreeVisualizer {
         const worldPos = this.screenToWorld(mouseX, mouseY);
 
         let foundNode = null;
-        const hoverRadius = 15 / this.zoom; // Радиус в мировых координатах
+        const hoverRadius = 15 / this.getZoom(); // Радиус в мировых координатах
 
         for (const [nodeId, pos] of this.nodePositions.entries()) {
             const dx = worldPos.x - pos.x;
@@ -282,7 +338,7 @@ class PassiveTreeVisualizer {
         }
     }
 
-    // Показать тултип
+    // Показать тултип (улучшенный, как в PoB)
     showTooltip(node, x, y) {
         let tooltip = document.getElementById('tree-tooltip');
 
@@ -291,35 +347,68 @@ class PassiveTreeVisualizer {
             tooltip.id = 'tree-tooltip';
             tooltip.style.cssText = `
                 position: fixed;
-                background: rgba(0, 0, 0, 0.95);
+                background: linear-gradient(135deg, rgba(10, 10, 25, 0.98), rgba(20, 20, 35, 0.98));
                 border: 2px solid #ffa500;
-                border-radius: 10px;
-                padding: 15px;
+                border-radius: 12px;
+                padding: 16px;
                 color: #fff;
                 font-size: 14px;
                 pointer-events: none;
                 z-index: 10000;
-                max-width: 300px;
-                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+                max-width: 350px;
+                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.7), 0 0 20px rgba(255, 165, 0, 0.3);
+                backdrop-filter: blur(10px);
             `;
             document.body.appendChild(tooltip);
         }
 
         const isAllocated = this.allocatedNodes.has(node.id.toString());
+
+        // Определяем цвет типа узла
+        const typeColors = {
+            'Normal': '#888',
+            'Notable': '#7a7aba',
+            'Keystone': '#ba7a7a',
+            'JewelSocket': '#9a7aba',
+            'Mastery': '#baaa7a'
+        };
+        const typeColor = typeColors[node.type] || '#888';
+
+        // Формируем статус
         const statusBadge = isAllocated
-            ? '<span style="color: #1dd1a1; font-weight: bold;">✓ Взято</span>'
-            : '<span style="color: #888;">Не взято</span>';
+            ? '<div style="display: inline-block; background: rgba(29, 209, 161, 0.2); border: 1px solid #1dd1a1; padding: 4px 10px; border-radius: 6px; color: #1dd1a1; font-weight: bold;">✓ Взято</div>'
+            : '<div style="display: inline-block; background: rgba(136, 136, 136, 0.2); border: 1px solid #888; padding: 4px 10px; border-radius: 6px; color: #888;">Не взято</div>';
+
+        // Формируем описание модификаторов узла
+        let statsHTML = '';
+        if (node.stats && node.stats.length > 0) {
+            statsHTML = '<div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255, 165, 0, 0.3);">';
+            node.stats.forEach(stat => {
+                statsHTML += `<div style="color: #aaf; margin-bottom: 4px; line-height: 1.4;">• ${stat}</div>`;
+            });
+            statsHTML += '</div>';
+        }
+
+        // Формируем информацию о связях
+        const connectionsInfo = node.out && node.out.length > 0
+            ? `<div style="color: #999; font-size: 12px; margin-top: 8px;">Связей: ${node.out.length}</div>`
+            : '';
 
         tooltip.innerHTML = `
-            <div style="color: #ffa500; font-weight: bold; font-size: 16px; margin-bottom: 8px;">
-                ${node.name || `Node ${node.id}`}
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                <div style="color: #ffa500; font-weight: bold; font-size: 17px; flex: 1;">
+                    ${node.name || `Узел ${node.id}`}
+                </div>
+                <div style="background: ${typeColor}; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; text-transform: uppercase; margin-left: 10px;">
+                    ${node.type || 'Normal'}
+                </div>
             </div>
-            <div style="color: #aaa; font-size: 12px; margin-bottom: 5px;">
-                ID: ${node.id} | Тип: ${node.type || 'Normal'}
+            <div style="color: #aaa; font-size: 12px; margin-bottom: 10px;">
+                ID: <span style="color: #ccc; font-family: monospace;">${node.id}</span>
             </div>
-            <div style="margin-top: 8px;">
-                ${statusBadge}
-            </div>
+            ${statusBadge}
+            ${statsHTML}
+            ${connectionsInfo}
         `;
 
         const rect = this.canvas.getBoundingClientRect();
@@ -350,6 +439,9 @@ class PassiveTreeVisualizer {
 
         // Рисуем сетку для ориентации
         this.drawGrid();
+
+        // Рисуем группы узлов (фон)
+        this.drawNodeGroups();
 
         // Рисуем связи между узлами
         this.drawConnections();
@@ -388,7 +480,7 @@ class PassiveTreeVisualizer {
         ctx.lineWidth = 1;
 
         for (let i = 1; i <= orbitCount; i++) {
-            const radius = baseOrbitRadius * i * this.zoom;
+            const radius = baseOrbitRadius * i * this.getZoom();
             const screenCenter = this.worldToScreen(0, 0);
 
             ctx.beginPath();
@@ -410,6 +502,52 @@ class PassiveTreeVisualizer {
             ctx.moveTo(screenCenter.x, screenCenter.y);
             ctx.lineTo(endX, endY);
             ctx.stroke();
+        }
+    }
+
+    // Отрисовка групп узлов (фоновые области)
+    drawNodeGroups() {
+        if (!this.nodeGroups || this.nodeGroups.size === 0) return;
+
+        const ctx = this.ctx;
+        const zoom = this.getZoom();
+
+        // Рисуем только видимые группы для оптимизации
+        for (const [groupId, group] of this.nodeGroups.entries()) {
+            const screenPos = this.worldToScreen(group.x, group.y);
+
+            // Проверяем видимость группы
+            const maxOrbitRadius = 200 * zoom;
+            if (screenPos.x + maxOrbitRadius < -50 || screenPos.x - maxOrbitRadius > this.canvas.width + 50 ||
+                screenPos.y + maxOrbitRadius < -50 || screenPos.y - maxOrbitRadius > this.canvas.height + 50) {
+                continue;
+            }
+
+            // Рисуем орбиты группы (если есть)
+            if (group.orbits && group.orbits.length > 0) {
+                ctx.save();
+                ctx.globalAlpha = 0.15;
+                ctx.strokeStyle = 'rgba(100, 150, 200, 0.3)';
+                ctx.lineWidth = 1;
+
+                for (const orbit of group.orbits) {
+                    const radius = (orbit || 50) * zoom;
+                    ctx.beginPath();
+                    ctx.arc(screenPos.x, screenPos.y, radius, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
+
+            // Рисуем фоновый круг для группы
+            ctx.save();
+            ctx.globalAlpha = 0.05;
+            ctx.fillStyle = 'rgba(150, 180, 220, 0.2)';
+            const groupRadius = 100 * zoom;
+            ctx.beginPath();
+            ctx.arc(screenPos.x, screenPos.y, groupRadius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
         }
     }
 
@@ -500,25 +638,47 @@ class PassiveTreeVisualizer {
             const isAllocated = this.allocatedNodes.has(nodeId);
             const isHovered = this.hoveredNode && this.hoveredNode.id == nodeId;
 
-            // Размер и стиль узла зависит от типа
+            // Размер и стиль узла зависит от типа (как в PoB)
             let radius = 6;
             let innerRadius = 4;
             let outerGlow = false;
+            let shape = 'circle'; // По умолчанию круг
 
-            if (node.type === 'Notable') {
-                radius = 10;
-                innerRadius = 7;
-                outerGlow = true;
-            } else if (node.type === 'Keystone') {
-                radius = 15;
-                innerRadius = 11;
-                outerGlow = true;
+            switch(node.type) {
+                case 'Notable':
+                    radius = 10;
+                    innerRadius = 7;
+                    outerGlow = true;
+                    break;
+                case 'Keystone':
+                    radius = 15;
+                    innerRadius = 11;
+                    outerGlow = true;
+                    shape = 'hexagon'; // Keystone обычно шестиугольник
+                    break;
+                case 'JewelSocket':
+                    radius = 12;
+                    innerRadius = 8;
+                    outerGlow = true;
+                    shape = 'square'; // Jewel Socket квадратный
+                    break;
+                case 'Mastery':
+                    radius = 11;
+                    innerRadius = 7;
+                    outerGlow = true;
+                    shape = 'diamond'; // Mastery ромб
+                    break;
+                default: // Normal
+                    radius = 6;
+                    innerRadius = 4;
+                    break;
             }
 
-            const scaledRadius = radius * this.zoom;
-            const scaledInnerRadius = innerRadius * this.zoom;
+            const zoom = this.getZoom();
+            const scaledRadius = radius * zoom;
+            const scaledInnerRadius = innerRadius * zoom;
 
-            // Цвета в зависимости от состояния
+            // Цвета в зависимости от типа узла (как в PoB)
             let colors = {
                 outer: '#4a4a6a',
                 middle: '#3a3a5a',
@@ -526,23 +686,42 @@ class PassiveTreeVisualizer {
                 glow: '#5a5a8a'
             };
 
-            if (node.type === 'Notable') {
-                colors = {
-                    outer: '#6a6aaa',
-                    middle: '#5a5a9a',
-                    inner: '#4a4a8a',
-                    glow: '#7a7aba'
-                };
-            } else if (node.type === 'Keystone') {
-                colors = {
-                    outer: '#aa6a6a',
-                    middle: '#9a5a5a',
-                    inner: '#8a4a4a',
-                    glow: '#ba7a7a'
-                };
+            switch(node.type) {
+                case 'Notable':
+                    colors = {
+                        outer: '#6a6aaa',
+                        middle: '#5a5a9a',
+                        inner: '#4a4a8a',
+                        glow: '#7a7aba'
+                    };
+                    break;
+                case 'Keystone':
+                    colors = {
+                        outer: '#aa6a6a',
+                        middle: '#9a5a5a',
+                        inner: '#8a4a4a',
+                        glow: '#ba7a7a'
+                    };
+                    break;
+                case 'JewelSocket':
+                    colors = {
+                        outer: '#8a6aaa',
+                        middle: '#7a5a9a',
+                        inner: '#6a4a8a',
+                        glow: '#9a7aba'
+                    };
+                    break;
+                case 'Mastery':
+                    colors = {
+                        outer: '#aa9a6a',
+                        middle: '#9a8a5a',
+                        inner: '#8a7a4a',
+                        glow: '#baaa7a'
+                    };
+                    break;
             }
 
-            // Если узел взят
+            // Если узел взят - зеленый цвет
             if (isAllocated) {
                 colors = {
                     outer: '#1dd1a1',
@@ -585,15 +764,17 @@ class PassiveTreeVisualizer {
             nodeGradient.addColorStop(1, colors.outer);
 
             ctx.fillStyle = nodeGradient;
+
+            // Рисуем форму в зависимости от типа узла
             ctx.beginPath();
-            ctx.arc(screenPos.x, screenPos.y, scaledRadius, 0, Math.PI * 2);
+            this.drawNodeShape(ctx, screenPos.x, screenPos.y, scaledRadius, shape);
             ctx.fill();
 
             // Обводка
             ctx.strokeStyle = colors.outer;
             ctx.lineWidth = isAllocated ? 3 : 2;
             ctx.beginPath();
-            ctx.arc(screenPos.x, screenPos.y, scaledRadius, 0, Math.PI * 2);
+            this.drawNodeShape(ctx, screenPos.x, screenPos.y, scaledRadius, shape);
             ctx.stroke();
 
             // Внутренний светлый круг для глубины
@@ -630,25 +811,66 @@ class PassiveTreeVisualizer {
         }
     }
 
+    // Отрисовка формы узла (круг, квадрат, шестиугольник, ромб)
+    drawNodeShape(ctx, x, y, radius, shape) {
+        switch(shape) {
+            case 'circle':
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                break;
+
+            case 'square':
+                ctx.rect(x - radius, y - radius, radius * 2, radius * 2);
+                break;
+
+            case 'hexagon':
+                // Рисуем шестиугольник
+                for (let i = 0; i < 6; i++) {
+                    const angle = (Math.PI / 3) * i - Math.PI / 2;
+                    const px = x + Math.cos(angle) * radius;
+                    const py = y + Math.sin(angle) * radius;
+                    if (i === 0) {
+                        ctx.moveTo(px, py);
+                    } else {
+                        ctx.lineTo(px, py);
+                    }
+                }
+                ctx.closePath();
+                break;
+
+            case 'diamond':
+                // Рисуем ромб (повернутый квадрат)
+                ctx.moveTo(x, y - radius);
+                ctx.lineTo(x + radius, y);
+                ctx.lineTo(x, y + radius);
+                ctx.lineTo(x - radius, y);
+                ctx.closePath();
+                break;
+
+            default:
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+        }
+    }
+
     // Отрисовка информации о зуме
     drawZoomInfo() {
         const ctx = this.ctx;
 
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(10, 10, 200, 80);
+        ctx.fillRect(10, 10, 220, 100);
 
         ctx.fillStyle = '#ffa500';
         ctx.font = '14px monospace';
-        ctx.fillText(`Зум: ${(this.zoom * 100).toFixed(0)}%`, 20, 30);
-        ctx.fillText(`Узлов в билде: ${this.allocatedNodes.size}`, 20, 50);
-        ctx.fillText(`Всего узлов: ${this.nodePositions.size}`, 20, 70);
+        const zoom = this.getZoom();
+        ctx.fillText(`Зум: ${(zoom * 100).toFixed(0)}% (уровень ${this.zoomLevel})`, 20, 30);
+        ctx.fillText(`Узлов в билде: ${this.allocatedNodes.size}`, 20, 55);
+        ctx.fillText(`Всего узлов: ${this.nodePositions.size}`, 20, 80);
     }
 
     // Центрирование дерева
     centerTree() {
         this.offsetX = this.canvas.width / 2;
         this.offsetY = this.canvas.height / 2;
-        this.zoom = 0.8;
+        this.zoomLevel = -2; // Соответствует зуму ~0.83 (1.2^-2)
         this.render();
     }
 
