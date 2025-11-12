@@ -56,6 +56,27 @@ function displayResults() {
     displayFlasks();
 }
 
+// Маппинг слотов на русский
+const slotNames = {
+    'Weapon 1': 'Оружие 1',
+    'Weapon 2': 'Оружие 2',
+    'Helmet': 'Шлем',
+    'Body Armour': 'Нагрудник',
+    'Gloves': 'Перчатки',
+    'Boots': 'Ботинки',
+    'Amulet': 'Амулет',
+    'Ring 1': 'Кольцо 1',
+    'Ring 2': 'Кольцо 2',
+    'Belt': 'Пояс',
+    'Weapon 1 Swap': 'Оружие 1 (своп)',
+    'Weapon 2 Swap': 'Оружие 2 (своп)',
+    'Flask 1': 'Фласка 1',
+    'Flask 2': 'Фласка 2',
+    'Flask 3': 'Фласка 3',
+    'Flask 4': 'Фласка 4',
+    'Flask 5': 'Фласка 5'
+};
+
 function displayItems() {
     const container = document.getElementById('itemsList');
     container.innerHTML = '';
@@ -88,22 +109,114 @@ function createItemCard(item) {
     const card = document.createElement('div');
     card.className = 'item-card';
     const rarityClass = `rarity-${item.rarity}`;
+    const slotName = slotNames[item.slot] || item.slot;
+
+    // Разделяем моды на категории
+    const categorizedMods = categorizeMods(item.mods);
+
+    // Текст для копирования
+    const copyText = buildCopyText(item, slotName);
 
     card.innerHTML = `
+        <div class="item-slot-label">${escapeHtml(slotName)}</div>
         ${item.sockets ? `<div class="item-sockets">${renderSockets(item.sockets)}</div>` : ''}
-        <div class="item-name ${rarityClass}">${escapeHtml(item.name)}</div>
+        <div class="item-header">
+            <div class="item-name ${rarityClass}">${escapeHtml(item.name)}</div>
+            <button class="copy-btn" title="Копировать">📋</button>
+        </div>
         ${item.base_type ? `<div class="item-base">${escapeHtml(item.base_type)}</div>` : ''}
-        ${item.mods.length > 0 ? `
-            <div class="item-mods">
-                ${item.mods.slice(0, 4).map(mod =>
-                    `<div class="item-mod">${escapeHtml(mod)}</div>`
-                ).join('')}
-                ${item.mods.length > 4 ? `<div class="item-mod">...еще ${item.mods.length - 4}</div>` : ''}
-            </div>
-        ` : ''}
+        ${renderModsSections(categorizedMods)}
     `;
 
+    // Добавляем обработчик после создания элемента
+    const copyBtn = card.querySelector('.copy-btn');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', (e) => copyToClipboard(e, copyText));
+    }
+
     return card;
+}
+
+function buildCopyText(item, slotName) {
+    let text = `${slotName}\n`;
+    text += `${item.name}\n`;
+    if (item.base_type) text += `${item.base_type}\n`;
+    if (item.sockets) text += `Сокеты: ${item.sockets}\n`;
+    if (item.mods.length > 0) {
+        text += '\nХарактеристики:\n';
+        item.mods.forEach(mod => text += `${mod}\n`);
+    }
+    return text;
+}
+
+function categorizeMods(mods) {
+    const categories = {
+        implicit: [],
+        explicit: [],
+        crafted: [],
+        other: []
+    };
+
+    mods.forEach(mod => {
+        const lowerMod = mod.toLowerCase();
+        if (lowerMod.includes('(implicit)') || lowerMod.includes('(неявное)')) {
+            categories.implicit.push(mod.replace(/\(implicit\)/i, '').replace(/\(неявное\)/i, '').trim());
+        } else if (lowerMod.includes('(crafted)') || lowerMod.includes('(создано)')) {
+            categories.crafted.push(mod.replace(/\(crafted\)/i, '').replace(/\(создано\)/i, '').trim());
+        } else if (mod.trim().length > 0 && !mod.includes('Requirements:') && !mod.includes('Item Level:')) {
+            categories.explicit.push(mod);
+        } else {
+            categories.other.push(mod);
+        }
+    });
+
+    return categories;
+}
+
+function renderModsSections(categories) {
+    let html = '';
+
+    if (categories.implicit.length > 0) {
+        html += `<div class="mods-section implicit-mods">
+            ${categories.implicit.map(mod => `<div class="mod-line">${escapeHtml(mod)}</div>`).join('')}
+        </div>`;
+    }
+
+    if (categories.explicit.length > 0) {
+        html += `<div class="mods-section explicit-mods">
+            ${categories.explicit.map(mod => `<div class="mod-line">${escapeHtml(mod)}</div>`).join('')}
+        </div>`;
+    }
+
+    if (categories.crafted.length > 0) {
+        html += `<div class="mods-section crafted-mods">
+            ${categories.crafted.map(mod => `<div class="mod-line">${escapeHtml(mod)}</div>`).join('')}
+        </div>`;
+    }
+
+    if (categories.other.length > 0) {
+        html += `<div class="mods-section other-mods">
+            ${categories.other.map(mod => `<div class="mod-line">${escapeHtml(mod)}</div>`).join('')}
+        </div>`;
+    }
+
+    return html;
+}
+
+function copyToClipboard(event, text) {
+    event.stopPropagation();
+    navigator.clipboard.writeText(text).then(() => {
+        const btn = event.target;
+        const originalText = btn.textContent;
+        btn.textContent = '✓';
+        btn.classList.add('copied');
+        setTimeout(() => {
+            btn.textContent = originalText;
+            btn.classList.remove('copied');
+        }, 1500);
+    }).catch(err => {
+        console.error('Ошибка копирования:', err);
+    });
 }
 
 function renderSockets(socketsString) {
