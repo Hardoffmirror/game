@@ -199,7 +199,7 @@ class PoBParser:
         # Пробуем несколько источников иконок
         # 1. pobb.in assets
         icon_urls = [
-            f"https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQXJtb3Vycy97item_name_clean}IiwicyI6MC4yNSwidiI6MX1d/a8c5f4e5e3/{item_name_clean}.png",
+            f"https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvQXJtb3Vycy/{{item_name_clean}}IiwicyI6MC4yNSwidiI6MX1d/a8c5f4e5e3/{item_name_clean}.png",
             f"https://assets.pobb.in/1/{item_name_clean}.webp",
             f"https://web.poecdn.com/image/Art/2DItems/{self._get_item_category(slot_name)}/{item_name_clean}.png"
         ]
