@@ -160,7 +160,8 @@ class PoBParser:
             'mods': mods,
             'sockets': sockets,
             'raw_text': item_text,
-            'icon_url': icon_url
+            'icon_url': icon_url,
+            'gems': []  # Список гемов будет заполнен позже
         }
 
     def _get_item_icon_url(self, name: str, base_type: str, slot_name: str) -> str:
@@ -456,11 +457,57 @@ class PoBParser:
         Returns:
             Словарь со всеми данными билда
         """
+        items = self.get_items()
+        skills = self.get_skills()
+
+        # Связываем гемы с предметами
+        items_with_gems = self._attach_gems_to_items(items, skills)
+
         return {
             'build_info': self.get_build_info(),
-            'items': self.get_items(),
-            'skills': self.get_skills(),
+            'items': items_with_gems,
+            'skills': skills,
             'tree': self.get_tree(),
             'config': self.get_config(),
             'notes': self.get_notes()
         }
+
+    def _attach_gems_to_items(self, items: List[Dict], skills: List[Dict]) -> List[Dict]:
+        """
+        Связывает гемы с предметами по слотам
+
+        Args:
+            items: Список предметов
+            skills: Список скиллов с гемами
+
+        Returns:
+            Список предметов с прикрепленными гемами
+        """
+        # Создаем словарь предметов по слотам для быстрого доступа
+        items_by_slot = {}
+        for item in items:
+            slot = item['slot']
+            items_by_slot[slot] = item
+
+        # Проходим по всем скиллам и прикрепляем гемы к соответствующим предметам
+        for skill in skills:
+            slot = skill.get('slot', '')
+
+            # Если у скилла есть слот и такой предмет существует
+            if slot and slot in items_by_slot:
+                item = items_by_slot[slot]
+
+                # Добавляем гемы к предмету
+                if 'gems' not in item:
+                    item['gems'] = []
+
+                # Добавляем информацию о группе гемов
+                gem_group = {
+                    'label': skill.get('label', 'Камни'),
+                    'enabled': skill.get('enabled', 'true'),
+                    'gems': skill.get('gems', [])
+                }
+
+                item['gems'].append(gem_group)
+
+        return items

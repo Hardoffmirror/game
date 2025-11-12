@@ -355,3 +355,155 @@ textarea:focus {
     font-size: 0.8em;
     margin-top: 2px;
 }
+
+/* Выпадающий список модов */
+.mods-dropdown {
+    margin-top: 10px;
+}
+
+.mods-toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    background: rgba(255, 165, 0, 0.15);
+    border: 1px solid rgba(255, 165, 0, 0.3);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.mods-toggle:hover {
+    background: rgba(255, 165, 0, 0.25);
+    border-color: rgba(255, 165, 0, 0.5);
+}
+
+.mods-toggle-text {
+    font-weight: 600;
+    color: #ffa500;
+    font-size: 0.9em;
+}
+
+.mods-toggle-arrow {
+    font-size: 0.8em;
+    color: #ffa500;
+    transition: transform 0.2s;
+}
+
+.mods-toggle.expanded .mods-toggle-arrow {
+    transform: rotate(180deg);
+}
+
+.mods-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+}
+
+.mods-group {
+    margin-top: 8px;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    border-left: 3px solid rgba(255, 165, 0, 0.4);
+}
+
+.mods-group-label {
+    font-weight: 600;
+    font-size: 0.85em;
+    color: #ffa500;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Камни рядом с предметами */
+.item-gems-section {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 2px solid rgba(255, 165, 0, 0.2);
+}
+
+.gems-section-title {
+    font-weight: 600;
+    color: #ffa500;
+    font-size: 0.9em;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.gems-group {
+    margin-bottom: 8px;
+}
+
+.gems-group-label {
+    font-size: 0.85em;
+    color: #aaa;
+    margin-bottom: 4px;
+    font-weight: 500;
+}
+
+.gems-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 4px;
+}
+
+.gem-item {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 6px 8px;
+    border-radius: 5px;
+    transition: all 0.2s;
+}
+
+.gem-item:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Цвета гемов по атрибутам */
+.gem-str {
+    border-left: 3px solid #ff6b6b;
+}
+
+.gem-str .gem-name {
+    color: #ff6b6b;
+}
+
+.gem-dex {
+    border-left: 3px solid #51cf66;
+}
+
+.gem-dex .gem-name {
+    color: #51cf66;
+}
+
+.gem-int {
+    border-left: 3px solid #4dabf7;
+}
+
+.gem-int .gem-name {
+    color: #4dabf7;
+}
+
+.gem-support {
+    border-left: 3px solid #1dd1a1;
+}
+
+.gem-support .gem-name {
+    color: #1dd1a1;
+}
+
+.gem-name {
+    font-weight: 600;
+    font-size: 0.85em;
+    line-height: 1.2;
+    margin-bottom: 2px;
+}
+
+.gem-stats {
+    color: #999;
+    font-size: 0.75em;
+}

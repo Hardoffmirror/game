@@ -52,7 +52,6 @@ function showError(message) {
 
 function displayResults() {
     displayItems();
-    displaySkills();
     displayFlasks();
 }
 
@@ -117,6 +116,9 @@ function createItemCard(item) {
     // Текст для копирования
     const copyText = buildCopyText(item, slotName);
 
+    // Проверяем наличие гемов
+    const hasGems = item.gems && item.gems.length > 0;
+
     card.innerHTML = `
         <div class="item-slot-label">${escapeHtml(slotName)}</div>
         ${item.sockets ? `<div class="item-sockets">${renderSockets(item.sockets)}</div>` : ''}
@@ -125,13 +127,31 @@ function createItemCard(item) {
             <button class="copy-btn" title="Копировать">📋</button>
         </div>
         ${item.base_type ? `<div class="item-base">${escapeHtml(item.base_type)}</div>` : ''}
-        ${renderModsSections(categorizedMods)}
+        ${renderModsDropdown(categorizedMods)}
+        ${hasGems ? renderItemGems(item.gems) : ''}
     `;
 
     // Добавляем обработчик после создания элемента
     const copyBtn = card.querySelector('.copy-btn');
     if (copyBtn) {
         copyBtn.addEventListener('click', (e) => copyToClipboard(e, copyText));
+    }
+
+    // Добавляем обработчик для выпадающего списка
+    const modsToggle = card.querySelector('.mods-toggle');
+    if (modsToggle) {
+        modsToggle.addEventListener('click', function() {
+            const modsContent = card.querySelector('.mods-content');
+            const isExpanded = modsToggle.classList.contains('expanded');
+
+            if (isExpanded) {
+                modsToggle.classList.remove('expanded');
+                modsContent.style.maxHeight = '0';
+            } else {
+                modsToggle.classList.add('expanded');
+                modsContent.style.maxHeight = modsContent.scrollHeight + 'px';
+            }
+        });
     }
 
     return card;
@@ -173,33 +193,76 @@ function categorizeMods(mods) {
     return categories;
 }
 
-function renderModsSections(categories) {
-    let html = '';
+function renderModsDropdown(categories) {
+    // Подсчитываем общее количество модов
+    const totalMods = categories.implicit.length + categories.explicit.length +
+                     categories.crafted.length;
 
-    if (categories.implicit.length > 0) {
-        html += `<div class="mods-section implicit-mods">
-            ${categories.implicit.map(mod => `<div class="mod-line">${escapeHtml(mod)}</div>`).join('')}
-        </div>`;
+    if (totalMods === 0) {
+        return '';
     }
 
-    if (categories.explicit.length > 0) {
-        html += `<div class="mods-section explicit-mods">
-            ${categories.explicit.map(mod => `<div class="mod-line">${escapeHtml(mod)}</div>`).join('')}
-        </div>`;
+    let html = '<div class="mods-dropdown">';
+    html += `<div class="mods-toggle">
+        <span class="mods-toggle-text">Характеристики (${totalMods})</span>
+        <span class="mods-toggle-arrow">▼</span>
+    </div>`;
+    html += '<div class="mods-content">';
+
+    // Сортируем и группируем моды
+    const modsOrder = [
+        { key: 'implicit', label: 'Неявные', items: categories.implicit, class: 'implicit-mods' },
+        { key: 'explicit', label: 'Явные', items: categories.explicit, class: 'explicit-mods' },
+        { key: 'crafted', label: 'Созданные', items: categories.crafted, class: 'crafted-mods' }
+    ];
+
+    modsOrder.forEach(({ label, items, class: className }) => {
+        if (items.length > 0) {
+            html += `<div class="mods-group">`;
+            html += `<div class="mods-group-label">${label}</div>`;
+            html += `<div class="mods-section ${className}">`;
+            items.forEach(mod => {
+                html += `<div class="mod-line">${escapeHtml(mod)}</div>`;
+            });
+            html += `</div></div>`;
+        }
+    });
+
+    html += '</div></div>';
+    return html;
+}
+
+function renderItemGems(gemGroups) {
+    if (!gemGroups || gemGroups.length === 0) {
+        return '';
     }
 
-    if (categories.crafted.length > 0) {
-        html += `<div class="mods-section crafted-mods">
-            ${categories.crafted.map(mod => `<div class="mod-line">${escapeHtml(mod)}</div>`).join('')}
-        </div>`;
-    }
+    let html = '<div class="item-gems-section">';
+    html += '<div class="gems-section-title">Вставленные камни</div>';
 
-    if (categories.other.length > 0) {
-        html += `<div class="mods-section other-mods">
-            ${categories.other.map(mod => `<div class="mod-line">${escapeHtml(mod)}</div>`).join('')}
-        </div>`;
-    }
+    gemGroups.forEach(group => {
+        if (group.gems && group.gems.length > 0) {
+            html += '<div class="gems-group">';
+            if (group.label) {
+                html += `<div class="gems-group-label">${escapeHtml(group.label)}</div>`;
+            }
+            html += '<div class="gems-list">';
 
+            group.gems.forEach(gem => {
+                const attribute = gem.attribute || 'int';
+                const attributeClass = `gem-${attribute}`;
+
+                html += `<div class="gem-item ${attributeClass}">
+                    <div class="gem-name">${escapeHtml(gem.nameSpec)}</div>
+                    <div class="gem-stats">Lvl ${gem.level} | Q ${gem.quality}%</div>
+                </div>`;
+            });
+
+            html += '</div></div>';
+        }
+    });
+
+    html += '</div>';
     return html;
 }
 
@@ -254,43 +317,6 @@ function renderSockets(socketsString) {
 
     html += '</div>';
     return html;
-}
-
-function displaySkills() {
-    const container = document.getElementById('skillsList');
-    container.innerHTML = '';
-
-    if (buildData.skills.length === 0) {
-        container.innerHTML = '<p>Камни не найдены</p>';
-        return;
-    }
-
-    buildData.skills.forEach(skill => {
-        const card = createSkillCard(skill);
-        container.appendChild(card);
-    });
-}
-
-function createSkillCard(skill) {
-    const card = document.createElement('div');
-    card.className = 'skill-card';
-
-    card.innerHTML = `
-        <div class="skill-header">
-            <div class="skill-label">${escapeHtml(skill.label || 'Камни')}</div>
-            <div class="skill-slot">${escapeHtml(skill.slot || '')}</div>
-        </div>
-        <div class="gems-grid">
-            ${skill.gems.map(gem => `
-                <div class="gem-item">
-                    <div class="gem-name">${escapeHtml(gem.nameSpec)}</div>
-                    <div class="gem-stats">Lvl: ${gem.level} | Q: ${gem.quality}%</div>
-                </div>
-            `).join('')}
-        </div>
-    `;
-
-    return card;
 }
 
 function escapeHtml(text) {
