@@ -9,112 +9,38 @@
 <body>
     <div class="container">
         <header>
-            <h1>⚔️ PoE Build Converter</h1>
-            <p class="subtitle">Конвертер билдов Path of Building с красивым интерфейсом</p>
+            <h1>PoE Build Converter</h1>
         </header>
 
         <div class="input-section">
-            <div class="input-group">
-                <label for="buildCode">Вставьте код билда из Path of Building:</label>
-                <textarea id="buildCode" placeholder="Вставьте сюда закодированный билд из PoB... (Ctrl+Enter для парсинга)"></textarea>
-            </div>
-            <button id="parseBtn" class="btn">🔍 Парсить билд</button>
+            <textarea id="buildCode" placeholder="Вставьте код билда из Path of Building..."></textarea>
+            <button id="parseBtn" class="btn">Парсить билд</button>
         </div>
 
         <div id="error" class="error"></div>
-
-        <div id="loading" class="loading">
-            <div class="spinner"></div>
-            <p>Обработка билда...</p>
-        </div>
+        <div id="loading" class="loading">Обработка...</div>
 
         <div id="results">
-            <div class="tabs">
-                <div class="tab active" data-tab="overview">📊 Обзор</div>
-                <div class="tab" data-tab="items">🎒 Предметы</div>
-                <div class="tab" data-tab="skills">💎 Скиллы и Гемы</div>
-                <div class="tab" data-tab="tree">🌳 Пассивное дерево</div>
-                <div class="tab" data-tab="config">⚙️ Конфигурация</div>
-                <div class="tab" data-tab="notes">📝 Заметки</div>
+            <!-- Вещи -->
+            <div class="section">
+                <h2>Экипировка</h2>
+                <div id="itemsList" class="items-grid"></div>
             </div>
 
-            <!-- Вкладка: Обзор -->
-            <div id="overview" class="tab-content active">
-                <h2>Информация о билде</h2>
-                <div class="build-info">
-                    <div class="info-card">
-                        <div class="info-label">Класс</div>
-                        <div class="info-value" id="className">-</div>
-                    </div>
-                    <div class="info-card">
-                        <div class="info-label">Подкласс</div>
-                        <div class="info-value" id="ascendClass">-</div>
-                    </div>
-                    <div class="info-card">
-                        <div class="info-label">Уровень</div>
-                        <div class="info-value" id="level">-</div>
-                    </div>
-                </div>
-
-                <h3 style="margin-top: 30px; color: #ffa500;">Быстрый доступ</h3>
-                <p style="color: #aaa; margin-top: 10px;">
-                    Используйте вкладки выше для просмотра детальной информации:
-                </p>
-                <ul style="color: #ddd; margin-top: 15px; line-height: 2;">
-                    <li>🎒 <strong>Предметы</strong> - все экипированные предметы с модами</li>
-                    <li>💎 <strong>Скиллы и Гемы</strong> - все скиллы и их сокеты</li>
-                    <li>🌳 <strong>Пассивное дерево</strong> - информация о выбранных узлах</li>
-                    <li>⚙️ <strong>Конфигурация</strong> - настройки билда</li>
-                    <li>📝 <strong>Заметки</strong> - заметки автора билда</li>
-                </ul>
-            </div>
-
-            <!-- Вкладка: Предметы -->
-            <div id="items" class="tab-content">
-                <h2 style="margin-bottom: 20px; color: #ffa500;">Предметы персонажа</h2>
-                <div id="itemsList"></div>
-            </div>
-
-            <!-- Модальное окно для детального просмотра предмета -->
-            <div id="itemModal" class="modal">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h2 id="modalItemName">Предмет</h2>
-                        <button class="modal-close" onclick="closeItemModal()">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <div id="modalItemDetails"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Вкладка: Скиллы -->
-            <div id="skills" class="tab-content">
-                <h2 style="margin-bottom: 20px; color: #ffa500;">Скиллы и Гемы</h2>
+            <!-- Камни -->
+            <div class="section">
+                <h2>Камни</h2>
                 <div id="skillsList"></div>
             </div>
 
-            <!-- Вкладка: Дерево -->
-            <div id="tree" class="tab-content">
-                <h2 style="margin-bottom: 20px; color: #ffa500;">Пассивное дерево</h2>
-                <div id="treeInfo"></div>
-            </div>
-
-            <!-- Вкладка: Конфигурация -->
-            <div id="config" class="tab-content">
-                <h2 style="margin-bottom: 20px; color: #ffa500;">Конфигурация билда</h2>
-                <div id="configList"></div>
-            </div>
-
-            <!-- Вкладка: Заметки -->
-            <div id="notes" class="tab-content">
-                <h2 style="margin-bottom: 20px; color: #ffa500;">Заметки</h2>
-                <div id="notesContent"></div>
+            <!-- Фласки -->
+            <div class="section">
+                <h2>Фласки</h2>
+                <div id="flasksList" class="items-grid"></div>
             </div>
         </div>
     </div>
 
-    <script src="{{ url_for('static', filename='js/tree-visualizer.js') }}"></script>
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 </html>
