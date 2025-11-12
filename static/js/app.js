@@ -154,6 +154,16 @@ function createItemCard(item) {
         });
     }
 
+    // Добавляем обработчики для кнопок копирования модов
+    const modCopyBtns = card.querySelectorAll('.mod-copy-btn');
+    modCopyBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const modText = btn.getAttribute('data-mod');
+            copyToClipboard(e, modText);
+        });
+    });
+
     return card;
 }
 
@@ -172,31 +182,73 @@ function buildCopyText(item, slotName) {
 function categorizeMods(mods) {
     const categories = {
         implicit: [],
+        enchant: [],
+        explicit_prefix: [],
+        explicit_suffix: [],
         explicit: [],
         crafted: [],
+        fractured: [],
+        synthesised: [],
+        veiled: [],
+        corrupted: [],
         other: []
     };
 
-    mods.forEach(mod => {
-        const lowerMod = mod.toLowerCase();
-        if (lowerMod.includes('(implicit)') || lowerMod.includes('(неявное)')) {
-            categories.implicit.push(mod.replace(/\(implicit\)/i, '').replace(/\(неявное\)/i, '').trim());
-        } else if (lowerMod.includes('(crafted)') || lowerMod.includes('(создано)')) {
-            categories.crafted.push(mod.replace(/\(crafted\)/i, '').replace(/\(создано\)/i, '').trim());
-        } else if (mod.trim().length > 0 && !mod.includes('Requirements:') && !mod.includes('Item Level:')) {
-            categories.explicit.push(mod);
-        } else {
-            categories.other.push(mod);
-        }
-    });
+    // Если моды приходят как массив объектов с type
+    if (mods.length > 0 && typeof mods[0] === 'object' && mods[0].type) {
+        mods.forEach(mod => {
+            const modType = mod.type;
+            const modText = mod.text.replace(/\(implicit\)/i, '')
+                                   .replace(/\(неявное\)/i, '')
+                                   .replace(/\(crafted\)/i, '')
+                                   .replace(/\(создано\)/i, '')
+                                   .replace(/\(enchant\)/i, '')
+                                   .replace(/\(зачаровано\)/i, '')
+                                   .replace(/\(fractured\)/i, '')
+                                   .replace(/\(расколото\)/i, '')
+                                   .replace(/\(synthesised\)/i, '')
+                                   .replace(/\(синтезировано\)/i, '')
+                                   .replace(/\(veiled\)/i, '')
+                                   .replace(/\(завуалировано\)/i, '')
+                                   .trim();
+
+            if (modType === 'corrupted_flag') {
+                // Пропускаем флаг corrupted, он будет отображен отдельно
+                return;
+            }
+
+            if (categories[modType]) {
+                categories[modType].push(modText);
+            } else {
+                categories.other.push(modText);
+            }
+        });
+    } else {
+        // Старая логика для обратной совместимости (если приходят строки)
+        mods.forEach(mod => {
+            const lowerMod = mod.toLowerCase();
+            if (lowerMod.includes('(implicit)') || lowerMod.includes('(неявное)')) {
+                categories.implicit.push(mod.replace(/\(implicit\)/i, '').replace(/\(неявное\)/i, '').trim());
+            } else if (lowerMod.includes('(crafted)') || lowerMod.includes('(создано)')) {
+                categories.crafted.push(mod.replace(/\(crafted\)/i, '').replace(/\(создано\)/i, '').trim());
+            } else if (mod.trim().length > 0 && !mod.includes('Requirements:') && !mod.includes('Item Level:')) {
+                categories.explicit.push(mod);
+            } else {
+                categories.other.push(mod);
+            }
+        });
+    }
 
     return categories;
 }
 
 function renderModsDropdown(categories) {
     // Подсчитываем общее количество модов
-    const totalMods = categories.implicit.length + categories.explicit.length +
-                     categories.crafted.length;
+    const totalMods = categories.implicit.length + categories.enchant.length +
+                     categories.explicit_prefix.length + categories.explicit_suffix.length +
+                     categories.explicit.length + categories.crafted.length +
+                     categories.fractured.length + categories.synthesised.length +
+                     categories.veiled.length + categories.corrupted.length;
 
     if (totalMods === 0) {
         return '';
@@ -209,11 +261,18 @@ function renderModsDropdown(categories) {
     </div>`;
     html += '<div class="mods-content">';
 
-    // Сортируем и группируем моды
+    // Сортируем и группируем моды по категориям в правильном порядке
     const modsOrder = [
-        { key: 'implicit', label: 'Неявные', items: categories.implicit, class: 'implicit-mods' },
-        { key: 'explicit', label: 'Явные', items: categories.explicit, class: 'explicit-mods' },
-        { key: 'crafted', label: 'Созданные', items: categories.crafted, class: 'crafted-mods' }
+        { key: 'implicit', label: 'Имплиситы (Неявные)', items: categories.implicit, class: 'implicit-mods' },
+        { key: 'enchant', label: 'Энчанты', items: categories.enchant, class: 'enchant-mods' },
+        { key: 'explicit_prefix', label: 'Префиксы', items: categories.explicit_prefix, class: 'prefix-mods' },
+        { key: 'explicit_suffix', label: 'Суффиксы', items: categories.explicit_suffix, class: 'suffix-mods' },
+        { key: 'explicit', label: 'Явные моды', items: categories.explicit, class: 'explicit-mods' },
+        { key: 'crafted', label: 'Крафтовые', items: categories.crafted, class: 'crafted-mods' },
+        { key: 'fractured', label: 'Фрактурные', items: categories.fractured, class: 'fractured-mods' },
+        { key: 'synthesised', label: 'Синтезированные', items: categories.synthesised, class: 'synthesised-mods' },
+        { key: 'veiled', label: 'Завуалированные', items: categories.veiled, class: 'veiled-mods' },
+        { key: 'corrupted', label: 'Корапты', items: categories.corrupted, class: 'corrupted-mods' }
     ];
 
     modsOrder.forEach(({ label, items, class: className }) => {
@@ -222,7 +281,10 @@ function renderModsDropdown(categories) {
             html += `<div class="mods-group-label">${label}</div>`;
             html += `<div class="mods-section ${className}">`;
             items.forEach(mod => {
-                html += `<div class="mod-line">${escapeHtml(mod)}</div>`;
+                html += `<div class="mod-line">
+                    <span class="mod-text">${escapeHtml(mod)}</span>
+                    <button class="mod-copy-btn" data-mod="${escapeHtml(mod)}" title="Копировать">📋</button>
+                </div>`;
             });
             html += `</div></div>`;
         }

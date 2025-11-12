@@ -115,6 +115,7 @@ class PoBParser:
         base_type = ""
         mods = []
         sockets = ""
+        corrupted = False
 
         if lines:
             # Ищем редкость (Rarity: ...)
@@ -132,22 +133,20 @@ class PoBParser:
                 base_type = lines[0]
                 lines = lines[1:]
 
-            # Остальные строки - это моды и характеристики
-            current_section = []
-            for line in lines:
-                if line.startswith('---'):
-                    if current_section:
-                        mods.extend(current_section)
-                        current_section = []
-                else:
-                    # Проверяем на информацию о сокетах
-                    if line.startswith('Sockets:'):
-                        sockets = line.replace('Sockets:', '').strip()
-                    else:
-                        current_section.append(line)
+            # Парсим моды по секциям
+            mods = self._parse_mods_sections(lines)
 
-            if current_section:
-                mods.extend(current_section)
+            # Проверяем на Corrupted
+            for mod in mods:
+                if mod.get('text', '').lower() in ['corrupted', 'осквернено']:
+                    corrupted = True
+                    break
+
+            # Ищем сокеты
+            for line in lines:
+                if line.startswith('Sockets:'):
+                    sockets = line.replace('Sockets:', '').strip()
+                    break
 
         # Формируем URL для картинки
         icon_url = self._get_item_icon_url(name, base_type, slot_name)
@@ -159,10 +158,128 @@ class PoBParser:
             'base_type': base_type,
             'mods': mods,
             'sockets': sockets,
+            'corrupted': corrupted,
             'raw_text': item_text,
             'icon_url': icon_url,
             'gems': []  # Список гемов будет заполнен позже
         }
+
+    def _parse_mods_sections(self, lines: List[str]) -> List[Dict]:
+        """
+        Парсит моды предмета по секциям
+
+        Args:
+            lines: Список строк из текста предмета
+
+        Returns:
+            Список модов с их типами
+        """
+        mods = []
+        current_section_type = 'unknown'
+        section_index = 0
+
+        for line in lines:
+            if line.startswith('---'):
+                section_index += 1
+                continue
+
+            if line.startswith('Sockets:') or line.startswith('Item Level:') or \
+               line.startswith('Requirements:') or line.startswith('LevelReq:') or \
+               line.startswith('Implicits:'):
+                continue
+
+            # Определяем тип мода
+            mod_type = self._determine_mod_type(line, section_index)
+
+            if mod_type != 'skip':
+                mods.append({
+                    'text': line,
+                    'type': mod_type,
+                    'section': section_index
+                })
+
+        return mods
+
+    def _determine_mod_type(self, line: str, section_index: int) -> str:
+        """
+        Определяет тип мода
+
+        Args:
+            line: Текст мода
+            section_index: Индекс секции в которой находится мод
+
+        Returns:
+            Тип мода: implicit, explicit_prefix, explicit_suffix, crafted,
+                     corrupted, enchant, fractured, synthesised, veiled
+        """
+        line_lower = line.lower()
+
+        # Пропускаем служебные строки
+        if any(skip in line_lower for skip in ['requirements:', 'item level:', 'sockets:', 'levelreq:']):
+            return 'skip'
+
+        # Corrupted
+        if line_lower in ['corrupted', 'осквернено']:
+            return 'corrupted_flag'
+
+        # Implicit моды (обычно в первой секции)
+        if '(implicit)' in line_lower or '(неявное)' in line_lower:
+            return 'implicit'
+
+        # Enchant моды
+        if '(enchant)' in line_lower or 'enchanted' in line_lower or '(зачаровано)' in line_lower:
+            return 'enchant'
+
+        # Crafted моды
+        if '(crafted)' in line_lower or '(создано)' in line_lower:
+            return 'crafted'
+
+        # Fractured моды
+        if '(fractured)' in line_lower or '(расколото)' in line_lower:
+            return 'fractured'
+
+        # Synthesised моды
+        if '(synthesised)' in line_lower or '(синтезировано)' in line_lower:
+            return 'synthesised'
+
+        # Veiled моды
+        if '(veiled)' in line_lower or '(завуалировано)' in line_lower or 'veiled' in line_lower:
+            return 'veiled'
+
+        # Corrupted implicit (после коррапта)
+        if section_index == 0:
+            return 'implicit'
+
+        # Explicit моды - определяем префикс или суффикс по содержанию
+        # В PoE префиксы обычно дают: life, mana, armour, energy shield, damage, added damage
+        # Суффиксы обычно дают: resistances, attributes, accuracy, critical strike
+
+        prefix_keywords = [
+            'life', 'mana', 'armour', 'armor', 'energy shield', 'evasion',
+            'physical damage', 'adds', 'increased damage', 'elemental damage',
+            'to maximum life', 'to maximum mana', 'to maximum energy shield',
+            'increased physical', 'increased spell', 'increased attack',
+            'socketed gems', 'reflects', 'thorns', 'regenerate'
+        ]
+
+        suffix_keywords = [
+            'resistance', 'to all attributes', 'to strength', 'to dexterity', 'to intelligence',
+            'accuracy', 'critical strike', 'increased rarity', 'reduced attribute requirements',
+            'cannot be frozen', 'stun and block recovery', 'to all elemental resistances',
+            'movement speed', 'attack speed', 'cast speed', 'flask'
+        ]
+
+        # Проверяем ключевые слова
+        for keyword in prefix_keywords:
+            if keyword in line_lower:
+                return 'explicit_prefix'
+
+        for keyword in suffix_keywords:
+            if keyword in line_lower:
+                return 'explicit_suffix'
+
+        # По умолчанию считаем explicit модом (не разделяя)
+        return 'explicit'
 
     def _get_item_icon_url(self, name: str, base_type: str, slot_name: str) -> str:
         """
@@ -264,8 +381,12 @@ class PoBParser:
             gem_name: Название гема (в нижнем регистре)
 
         Returns:
-            Атрибут гема: 'str', 'dex', 'int', или 'support'
+            Атрибут гема: 'str', 'dex', 'int', 'support', или 'white' (awakened/exceptional)
         """
+        # Awakened гемы (белые)
+        if 'awakened' in gem_name or 'exceptional' in gem_name:
+            return 'white'
+
         # Список support гемов (всегда бирюзовые)
         if 'support' in gem_name:
             return 'support'
@@ -279,7 +400,11 @@ class PoBParser:
             'anger', 'determination', 'vitality', 'purity of fire', 'ancestral cry',
             'seismic cry', 'infernal cry', 'flame link', 'armor', 'war', 'physical',
             'boneshatter', 'earthshatter', 'rage', 'berserk', 'general', 'blood',
-            'perforate', 'shield crush', 'smite', 'reap', 'corrupting fever', 'exsanguinate'
+            'perforate', 'shield crush', 'smite', 'reap', 'corrupting fever', 'exsanguinate',
+            'leap slam', 'static strike', 'sweep', 'glacial hammer', 'dual strike',
+            'vaal earthquake', 'vaal molten strike', 'vaal ground slam', 'vaal immortal call',
+            'melee', 'slam', 'warcry', 'shockwave', 'call to arms', 'molten shell',
+            'steelskin', 'flesh and stone', 'pride', 'dread banner', 'war banner'
         ]
 
         # Dexterity (зеленые) гемы
@@ -295,7 +420,9 @@ class PoBParser:
             'artillery ballista', 'siege ballista', 'shrapnel ballista', 'ensnaring arrow',
             'ballista', 'projectile', 'arrow', 'trap', 'mine', 'poison', 'venom',
             'spectral shield throw', 'spectral helix', 'pestilent strike', 'viper strike',
-            'plague bearer', 'withering step', 'phase run'
+            'plague bearer', 'withering step', 'phase run', 'smoke mine', 'sabotage',
+            'lightning strike', 'elemental strike', 'dash', 'flame dash', 'blood rage',
+            'stealth', 'evasion', 'charged', 'poacher', 'thief', 'agony', 'pathfinder'
         ]
 
         # Intelligence (синие) гемы
@@ -315,7 +442,9 @@ class PoBParser:
             'vulnerability', 'curse', 'hex', 'mark', 'bane', 'essence drain', 'contagion',
             'dark pact', 'blight', 'siphoning', 'energy', 'mana', 'minion', 'summon',
             'volatile dead', 'cremation', 'bodyswap', 'unearth', 'detonate dead', 'offering',
-            'srs', 'absolution', 'eye of winter', 'storm call'
+            'srs', 'absolution', 'eye of winter', 'storm call', 'herald of ice', 'herald of thunder',
+            'portal', 'frost shield', 'arcane', 'elemental focus', 'spell', 'cast',
+            'lightning', 'cold', 'fire', 'chaos', 'necromancer', 'occultist', 'elementalist'
         ]
 
         # Проверяем вхождение ключевых слов
