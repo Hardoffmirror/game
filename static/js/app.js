@@ -534,7 +534,7 @@ function renderItemGems(gemGroups) {
     }
 
     let html = '<div class="item-gems-section">';
-    html += '<div class="gems-section-title">Вставленные самоцветы</div>';
+    html += '<div class="gems-section-title">Вставленные джевелы</div>';
 
     gemGroups.forEach(group => {
         if (group.gems && group.gems.length > 0) {
