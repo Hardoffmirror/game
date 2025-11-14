@@ -21,6 +21,42 @@ header {
     text-align: center;
     padding: 15px 0;
     margin-bottom: 15px;
+    position: relative;
+}
+
+.language-toggle {
+    position: absolute;
+    top: 15px;
+    right: 0;
+}
+
+.lang-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 165, 0, 0.2);
+    border: 2px solid rgba(255, 165, 0, 0.4);
+    color: #ffa500;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+    font-size: 0.9em;
+}
+
+.lang-btn:hover {
+    background: rgba(255, 165, 0, 0.3);
+    border-color: #ffa500;
+    transform: translateY(-2px);
+}
+
+.lang-flag {
+    font-size: 1.2em;
+}
+
+.lang-text {
+    font-weight: 700;
 }
 
 h1 {
@@ -433,6 +469,80 @@ textarea:focus {
     color: #aaa;
     font-size: 0.8em;
     margin-top: 2px;
+}
+
+/* Выпадающий список базовых характеристик */
+.base-stats-dropdown {
+    margin-top: 10px;
+}
+
+.base-stats-toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    background: rgba(100, 149, 237, 0.15);
+    border: 1px solid rgba(100, 149, 237, 0.3);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.base-stats-toggle:hover {
+    background: rgba(100, 149, 237, 0.25);
+    border-color: rgba(100, 149, 237, 0.5);
+}
+
+.base-stats-toggle-text {
+    font-weight: 600;
+    color: #6495ed;
+    font-size: 0.9em;
+}
+
+.base-stats-toggle-arrow {
+    font-size: 0.8em;
+    color: #6495ed;
+    transition: transform 0.2s;
+}
+
+.base-stats-toggle.expanded .base-stats-toggle-arrow {
+    transform: rotate(180deg);
+}
+
+.base-stats-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 0 0 6px 6px;
+}
+
+.base-stat-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 10px;
+    font-size: 0.85em;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.base-stat-line:last-child {
+    border-bottom: none;
+}
+
+.base-stat-line:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.base-stat-key {
+    color: #aaa;
+    font-weight: 500;
+}
+
+.base-stat-value {
+    color: #e0e0e0;
+    font-weight: 600;
 }
 
 /* Выпадающий список модов */

@@ -1,9 +1,62 @@
 let buildData = null;
+let currentLanguage = 'en'; // 'en' или 'ru'
 
 document.addEventListener('DOMContentLoaded', function() {
     const parseBtn = document.getElementById('parseBtn');
     parseBtn.addEventListener('click', parseBuild);
+
+    const langToggle = document.getElementById('langToggle');
+    if (langToggle) {
+        langToggle.addEventListener('click', toggleLanguage);
+    }
+
+    // Загружаем сохраненный язык
+    const savedLang = localStorage.getItem('poe_language');
+    if (savedLang) {
+        currentLanguage = savedLang;
+        updateLanguageButton();
+        if (buildData) {
+            displayResults();
+        }
+    }
 });
+
+function toggleLanguage() {
+    currentLanguage = currentLanguage === 'en' ? 'ru' : 'en';
+    localStorage.setItem('poe_language', currentLanguage);
+    updateLanguageButton();
+
+    // Перерисовываем результаты если есть данные
+    if (buildData) {
+        displayResults();
+    }
+}
+
+function updateLanguageButton() {
+    const langToggle = document.getElementById('langToggle');
+    if (!langToggle) return;
+
+    const flag = langToggle.querySelector('.lang-flag');
+    const text = langToggle.querySelector('.lang-text');
+
+    if (currentLanguage === 'ru') {
+        flag.textContent = '🇷🇺';
+        text.textContent = 'RU';
+    } else {
+        flag.textContent = '🇬🇧';
+        text.textContent = 'EN';
+    }
+}
+
+function applyTranslation(text, category = 'baseTypes') {
+    if (currentLanguage === 'en' || !text) return text;
+    return window.getTranslation ? window.getTranslation(text, category) : text;
+}
+
+function applyModTranslation(modText) {
+    if (currentLanguage === 'en' || !modText) return modText;
+    return window.translateMod ? window.translateMod(modText) : modText;
+}
 
 async function parseBuild() {
     const buildCode = document.getElementById('buildCode').value.trim();
@@ -119,14 +172,22 @@ function createItemCard(item) {
     // Проверяем наличие гемов
     const hasGems = item.gems && item.gems.length > 0;
 
+    // Проверяем наличие базовых характеристик
+    const hasBaseStats = item.base_stats && Object.keys(item.base_stats).length > 0;
+
+    // Применяем переводы
+    const translatedName = applyTranslation(item.name, 'uniqueItems');
+    const translatedBaseType = applyTranslation(item.base_type, 'baseTypes');
+
     card.innerHTML = `
         <div class="item-slot-label">${escapeHtml(slotName)}</div>
         ${item.sockets ? `<div class="item-sockets">${renderSockets(item.sockets)}</div>` : ''}
         <div class="item-header">
-            <div class="item-name ${rarityClass}">${escapeHtml(item.name)}</div>
+            <div class="item-name ${rarityClass}">${escapeHtml(translatedName)}</div>
             <button class="copy-btn" title="Копировать">📋</button>
         </div>
-        ${item.base_type ? `<div class="item-base">${escapeHtml(item.base_type)}</div>` : ''}
+        ${item.base_type ? `<div class="item-base">${escapeHtml(translatedBaseType)}</div>` : ''}
+        ${hasBaseStats ? renderBaseStats(item.base_stats) : ''}
         ${renderModsDropdown(categorizedMods)}
         ${hasGems ? renderItemGems(item.gems) : ''}
     `;
@@ -137,7 +198,7 @@ function createItemCard(item) {
         copyBtn.addEventListener('click', (e) => copyToClipboard(e, copyText));
     }
 
-    // Добавляем обработчик для выпадающего списка
+    // Добавляем обработчик для выпадающего списка модов
     const modsToggle = card.querySelector('.mods-toggle');
     if (modsToggle) {
         modsToggle.addEventListener('click', function() {
@@ -150,6 +211,23 @@ function createItemCard(item) {
             } else {
                 modsToggle.classList.add('expanded');
                 modsContent.style.maxHeight = modsContent.scrollHeight + 'px';
+            }
+        });
+    }
+
+    // Добавляем обработчик для выпадающего списка базовых характеристик
+    const baseStatsToggle = card.querySelector('.base-stats-toggle');
+    if (baseStatsToggle) {
+        baseStatsToggle.addEventListener('click', function() {
+            const baseStatsContent = card.querySelector('.base-stats-content');
+            const isExpanded = baseStatsToggle.classList.contains('expanded');
+
+            if (isExpanded) {
+                baseStatsToggle.classList.remove('expanded');
+                baseStatsContent.style.maxHeight = '0';
+            } else {
+                baseStatsToggle.classList.add('expanded');
+                baseStatsContent.style.maxHeight = baseStatsContent.scrollHeight + 'px';
             }
         });
     }
@@ -252,6 +330,57 @@ function categorizeMods(mods) {
     return categories;
 }
 
+function renderBaseStats(baseStats) {
+    if (!baseStats || Object.keys(baseStats).length === 0) {
+        return '';
+    }
+
+    // Переводы базовых характеристик
+    const translations = {
+        'Quality': 'Качество',
+        'Armour': 'Броня',
+        'Evasion Rating': 'Уклонение',
+        'Energy Shield': 'Энергетический щит',
+        'Ward': 'Защита',
+        'Physical Damage': 'Физический урон',
+        'Elemental Damage': 'Стихийный урон',
+        'Chaos Damage': 'Урон хаосом',
+        'Critical Strike Chance': 'Шанс критического удара',
+        'Attacks per Second': 'Атак в секунду',
+        'Weapon Range': 'Дальность оружия',
+        'Block': 'Блок',
+        'Chance to Block': 'Шанс блока',
+        'Movement Speed': 'Скорость передвижения',
+        'LevelReq': 'Треб. уровень',
+        'Requirements': 'Требования',
+        'Item Level': 'Уровень предмета',
+        'ArmourBasePercentile': 'Броня (процентиль)',
+        'EvasionBasePercentile': 'Уклонение (процентиль)',
+        'EnergyShieldBasePercentile': 'Эн. щит (процентиль)'
+    };
+
+    let html = '<div class="base-stats-dropdown">';
+    html += `<div class="base-stats-toggle">
+        <span class="base-stats-toggle-text">Базовые характеристики (${Object.keys(baseStats).length})</span>
+        <span class="base-stats-toggle-arrow">▼</span>
+    </div>`;
+    html += '<div class="base-stats-content">';
+
+    for (const [key, value] of Object.entries(baseStats)) {
+        // Пропускаем Sockets, т.к. они уже отображены
+        if (key === 'Sockets') continue;
+
+        const translatedKey = translations[key] || key;
+        html += `<div class="base-stat-line">
+            <span class="base-stat-key">${escapeHtml(translatedKey)}:</span>
+            <span class="base-stat-value">${escapeHtml(value)}</span>
+        </div>`;
+    }
+
+    html += '</div></div>';
+    return html;
+}
+
 function renderModsDropdown(categories) {
     // Подсчитываем общее количество модов
     const totalMods = categories.implicit.length + categories.enchant.length +
@@ -291,9 +420,10 @@ function renderModsDropdown(categories) {
             html += `<div class="mods-group-label">${label}</div>`;
             html += `<div class="mods-section ${className}">`;
             items.forEach(mod => {
+                const translatedMod = applyModTranslation(mod);
                 html += `<div class="mod-line">
-                    <span class="mod-text">${escapeHtml(mod)}</span>
-                    <button class="mod-copy-btn" data-mod="${escapeHtml(mod)}" title="Копировать">📋</button>
+                    <span class="mod-text">${escapeHtml(translatedMod)}</span>
+                    <button class="mod-copy-btn" data-mod="${escapeHtml(translatedMod)}" title="Копировать">📋</button>
                 </div>`;
             });
             html += `</div></div>`;

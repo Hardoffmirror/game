@@ -113,6 +113,7 @@ class PoBParser:
         rarity = ""
         name = "Unknown Item"
         base_type = ""
+        base_stats = {}
         mods = []
         sockets = ""
         corrupted = False
@@ -133,19 +134,13 @@ class PoBParser:
                 base_type = lines[0]
                 lines = lines[1:]
 
-            # Парсим моды по секциям
-            mods = self._parse_mods_sections(lines)
+            # Парсим базовые характеристики и моды по секциям
+            base_stats, mods, sockets = self._parse_item_sections(lines)
 
             # Проверяем на Corrupted
             for mod in mods:
                 if mod.get('text', '').lower() in ['corrupted', 'осквернено']:
                     corrupted = True
-                    break
-
-            # Ищем сокеты
-            for line in lines:
-                if line.startswith('Sockets:'):
-                    sockets = line.replace('Sockets:', '').strip()
                     break
 
         # Формируем URL для картинки
@@ -156,6 +151,7 @@ class PoBParser:
             'rarity': rarity,
             'name': name,
             'base_type': base_type,
+            'base_stats': base_stats,
             'mods': mods,
             'sockets': sockets,
             'corrupted': corrupted,
@@ -163,6 +159,121 @@ class PoBParser:
             'icon_url': icon_url,
             'gems': []  # Список гемов будет заполнен позже
         }
+
+    def _parse_item_sections(self, lines: List[str]) -> tuple[Dict, List[Dict], str]:
+        """
+        Парсит секции предмета: базовые характеристики, моды, сокеты
+
+        Args:
+            lines: Список строк из текста предмета
+
+        Returns:
+            Кортеж (base_stats, mods, sockets)
+        """
+        base_stats = {}
+        mods = []
+        sockets = ""
+
+        # Ключевые слова для базовых характеристик (не моды!)
+        base_stat_keywords = [
+            'Quality:', 'Armour:', 'Evasion Rating:', 'Energy Shield:',
+            'Ward:', 'Movement Speed:', 'Block:', 'Chance to Block:',
+            'Physical Damage:', 'Elemental Damage:', 'Chaos Damage:',
+            'Critical Strike Chance:', 'Attacks per Second:', 'Weapon Range:',
+            'LevelReq:', 'Requirements:', 'Item Level:', 'Unique ID:',
+            'League:', 'Radius:', 'Limited to:', 'Can have',
+            'ArmourBasePercentile:', 'EvasionBasePercentile:', 'EnergyShieldBasePercentile:',
+            'Качество:', 'Броня:', 'Уклонение:', 'Энергетический щит:',
+            'Физический урон:', 'Шанс критического удара:', 'Атак в секунду:',
+            'Уровень предмета:', 'Требования:', 'Дальность оружия:'
+        ]
+
+        section_index = 0
+        implicit_count = 0
+        implicit_mods_found = 0
+        in_implicit_section = False
+        in_base_stats_section = False  # Флаг для секции базовых характеристик
+
+        for line in lines:
+            # Обработка разделителей секций
+            if line.startswith('---'):
+                section_index += 1
+                # Секция 1 (первая после ---) - базовые характеристики
+                if section_index == 1:
+                    in_base_stats_section = True
+                else:
+                    in_base_stats_section = False
+                continue
+
+            # Сокеты
+            if line.startswith('Sockets:'):
+                sockets = line.replace('Sockets:', '').strip()
+                base_stats['Sockets'] = sockets
+                continue
+
+            # Проверяем, является ли это базовой характеристикой
+            is_base_stat = False
+            for keyword in base_stat_keywords:
+                if line.startswith(keyword):
+                    is_base_stat = True
+                    # Извлекаем ключ и значение
+                    key_value = line.split(':', 1)
+                    if len(key_value) == 2:
+                        base_stats[key_value[0].strip()] = key_value[1].strip()
+                    break
+
+            # Если в секции базовых характеристик и не является специальным модом
+            if in_base_stats_section and not is_base_stat:
+                # Проверяем, не является ли это началом модов
+                if any(marker in line.lower() for marker in ['implicits:', 'implicit', 'неявное']):
+                    in_base_stats_section = False
+                    is_base_stat = False
+                else:
+                    # Если в первой секции и не является ключевой характеристикой
+                    # Считаем базовой характеристикой
+                    is_base_stat = True
+                    base_stats[f'stat_{len(base_stats)}'] = line
+
+            if is_base_stat:
+                continue
+
+            # Проверяем количество имплиситов
+            if line.startswith('Implicits:'):
+                try:
+                    implicit_count = int(line.split(':')[1].strip())
+                    in_implicit_section = True
+                    implicit_mods_found = 0
+                except:
+                    pass
+                continue
+
+            # Пропускаем служебные строки которые уже обработаны
+            if any(line.startswith(kw) for kw in base_stat_keywords):
+                continue
+
+            # Определяем тип мода
+            mod_type = self._determine_mod_type(
+                line,
+                section_index,
+                in_implicit_section,
+                implicit_mods_found < implicit_count
+            )
+
+            # Если мод был имплиситом, увеличиваем счетчик
+            if mod_type == 'implicit':
+                implicit_mods_found += 1
+                # Выходим из секции имплиситов после нужного количества
+                if implicit_mods_found >= implicit_count:
+                    in_implicit_section = False
+
+            if mod_type != 'skip':
+                mods.append({
+                    'text': line,
+                    'type': mod_type,
+                    'section': section_index
+                })
+
+        return base_stats, mods, sockets
 
     def _parse_mods_sections(self, lines: List[str]) -> List[Dict]:
         """
