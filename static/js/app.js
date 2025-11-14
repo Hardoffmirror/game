@@ -164,6 +164,16 @@ function createItemCard(item) {
         });
     });
 
+    // Добавляем обработчики для кнопок копирования гемов
+    const gemCopyBtns = card.querySelectorAll('.gem-copy-btn');
+    gemCopyBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const gemName = btn.getAttribute('data-gem');
+            copyToClipboard(e, gemName);
+        });
+    });
+
     return card;
 }
 
@@ -315,8 +325,11 @@ function renderItemGems(gemGroups) {
                 const attributeClass = `gem-${attribute}`;
 
                 html += `<div class="gem-item ${attributeClass}">
-                    <div class="gem-name">${escapeHtml(gem.nameSpec)}</div>
-                    <div class="gem-stats">Lvl ${gem.level} | Q ${gem.quality}%</div>
+                    <div class="gem-info">
+                        <div class="gem-name">${escapeHtml(gem.nameSpec)}</div>
+                        <div class="gem-stats">Lvl ${gem.level} | Q ${gem.quality}%</div>
+                    </div>
+                    <button class="gem-copy-btn" data-gem="${escapeHtml(gem.nameSpec)}" title="Копировать название">📋</button>
                 </div>`;
             });
 

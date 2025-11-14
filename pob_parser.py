@@ -175,21 +175,46 @@ class PoBParser:
             Список модов с их типами
         """
         mods = []
-        current_section_type = 'unknown'
         section_index = 0
+        implicit_count = 0
+        implicit_mods_found = 0
+        in_implicit_section = False
 
         for line in lines:
+            # Обработка разделителей секций
             if line.startswith('---'):
                 section_index += 1
                 continue
 
+            # Проверяем количество имплиситов
+            if line.startswith('Implicits:'):
+                try:
+                    implicit_count = int(line.split(':')[1].strip())
+                    in_implicit_section = True
+                    implicit_mods_found = 0
+                except:
+                    pass
+                continue
+
+            # Пропускаем служебные строки
             if line.startswith('Sockets:') or line.startswith('Item Level:') or \
-               line.startswith('Requirements:') or line.startswith('LevelReq:') or \
-               line.startswith('Implicits:'):
+               line.startswith('Requirements:') or line.startswith('LevelReq:'):
                 continue
 
             # Определяем тип мода
-            mod_type = self._determine_mod_type(line, section_index)
+            mod_type = self._determine_mod_type(
+                line,
+                section_index,
+                in_implicit_section,
+                implicit_mods_found < implicit_count
+            )
+
+            # Если мод был имплиситом, увеличиваем счетчик
+            if mod_type == 'implicit':
+                implicit_mods_found += 1
+                # Выходим из секции имплиситов после нужного количества
+                if implicit_mods_found >= implicit_count:
+                    in_implicit_section = False
 
             if mod_type != 'skip':
                 mods.append({
@@ -200,13 +225,15 @@ class PoBParser:
 
         return mods
 
-    def _determine_mod_type(self, line: str, section_index: int) -> str:
+    def _determine_mod_type(self, line: str, section_index: int, in_implicit_section: bool = False, is_implicit_mod: bool = False) -> str:
         """
         Определяет тип мода
 
         Args:
             line: Текст мода
             section_index: Индекс секции в которой находится мод
+            in_implicit_section: Находимся ли мы в секции имплиситных модов
+            is_implicit_mod: Является ли мод имплиситным (по счетчику)
 
         Returns:
             Тип мода: implicit, explicit_prefix, explicit_suffix, crafted,
@@ -219,11 +246,11 @@ class PoBParser:
             return 'skip'
 
         # Corrupted
-        if line_lower in ['corrupted', 'осквернено']:
+        if line_lower in ['corrupted', 'осквернено', 'миррировано', 'mirrored']:
             return 'corrupted_flag'
 
-        # Implicit моды (обычно в первой секции)
-        if '(implicit)' in line_lower or '(неявное)' in line_lower:
+        # Implicit моды - проверяем маркеры и флаг
+        if '(implicit)' in line_lower or '(неявное)' in line_lower or in_implicit_section or is_implicit_mod:
             return 'implicit'
 
         # Enchant моды
@@ -246,10 +273,6 @@ class PoBParser:
         if '(veiled)' in line_lower or '(завуалировано)' in line_lower or 'veiled' in line_lower:
             return 'veiled'
 
-        # Corrupted implicit (после коррапта)
-        if section_index == 0:
-            return 'implicit'
-
         # Explicit моды - определяем префикс или суффикс по содержанию
         # В PoE префиксы обычно дают: life, mana, armour, energy shield, damage, added damage
         # Суффиксы обычно дают: resistances, attributes, accuracy, critical strike
@@ -259,14 +282,17 @@ class PoBParser:
             'physical damage', 'adds', 'increased damage', 'elemental damage',
             'to maximum life', 'to maximum mana', 'to maximum energy shield',
             'increased physical', 'increased spell', 'increased attack',
-            'socketed gems', 'reflects', 'thorns', 'regenerate'
+            'socketed gems', 'reflects', 'thorns', 'regenerate', 'local',
+            'качество', 'quality', 'броня', 'уклонение'
         ]
 
         suffix_keywords = [
             'resistance', 'to all attributes', 'to strength', 'to dexterity', 'to intelligence',
             'accuracy', 'critical strike', 'increased rarity', 'reduced attribute requirements',
             'cannot be frozen', 'stun and block recovery', 'to all elemental resistances',
-            'movement speed', 'attack speed', 'cast speed', 'flask'
+            'movement speed', 'attack speed', 'cast speed', 'flask',
+            'сопротивление', 'к силе', 'к ловкости', 'к интеллекту', 'скорость',
+            'редкость'
         ]
 
         # Проверяем ключевые слова
