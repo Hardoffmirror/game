@@ -105,6 +105,7 @@ function showError(message) {
 
 function displayResults() {
     displayItems();
+    displayGems();
     displayFlasks();
 }
 
@@ -155,6 +156,99 @@ function displayFlasks() {
         const card = createItemCard(flask);
         container.appendChild(card);
     });
+}
+
+function displayGems() {
+    const container = document.getElementById('gemsList');
+    container.innerHTML = '';
+
+    if (!buildData.skills || buildData.skills.length === 0) {
+        container.innerHTML = '<div class="no-gems">Гемы не найдены</div>';
+        return;
+    }
+
+    // Фильтруем активные группы гемов
+    const activeSkills = buildData.skills.filter(skill =>
+        skill.enabled === 'true' && skill.gems && skill.gems.length > 0
+    );
+
+    if (activeSkills.length === 0) {
+        container.innerHTML = '<div class="no-gems">Гемы не найдены</div>';
+        return;
+    }
+
+    activeSkills.forEach(skill => {
+        const skillCard = createSkillCard(skill);
+        container.appendChild(skillCard);
+    });
+}
+
+function createSkillCard(skill) {
+    const card = document.createElement('div');
+    card.className = 'skill-card';
+
+    // Определяем название группы
+    const skillLabel = skill.label || 'Группа гемов';
+    const slotLabel = skill.slot ? ` (${slotNames[skill.slot] || skill.slot})` : '';
+
+    // Текст для копирования всей группы
+    const copyText = buildSkillCopyText(skill);
+
+    card.innerHTML = `
+        <div class="skill-header">
+            <div class="skill-title">${escapeHtml(skillLabel)}${escapeHtml(slotLabel)}</div>
+            <button class="copy-btn" title="Копировать">📋</button>
+        </div>
+        <div class="gems-list">
+            ${skill.gems.map(gem => renderGemItem(gem)).join('')}
+        </div>
+    `;
+
+    // Добавляем обработчик для кнопки копирования
+    const copyBtn = card.querySelector('.copy-btn');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', (e) => copyToClipboard(e, copyText));
+    }
+
+    // Добавляем обработчики для кнопок копирования отдельных гемов
+    const gemCopyBtns = card.querySelectorAll('.gem-copy-btn');
+    gemCopyBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const gemName = btn.getAttribute('data-gem');
+            copyToClipboard(e, gemName);
+        });
+    });
+
+    return card;
+}
+
+function renderGemItem(gem) {
+    const attribute = gem.attribute || 'int';
+    const attributeClass = `gem-${attribute}`;
+    const translatedName = applyTranslation(gem.nameSpec, 'gems');
+
+    return `
+        <div class="gem-item ${attributeClass}">
+            <div class="gem-info">
+                <div class="gem-name">${escapeHtml(translatedName)}</div>
+                <div class="gem-stats">Lvl ${gem.level} | Q ${gem.quality}%</div>
+            </div>
+            <button class="gem-copy-btn" data-gem="${escapeHtml(gem.nameSpec)}" title="Копировать название">📋</button>
+        </div>
+    `;
+}
+
+function buildSkillCopyText(skill) {
+    let text = `${skill.label || 'Группа гемов'}\n`;
+    if (skill.slot) {
+        text += `Слот: ${slotNames[skill.slot] || skill.slot}\n`;
+    }
+    text += '\nГемы:\n';
+    skill.gems.forEach(gem => {
+        text += `${gem.nameSpec} (Lvl ${gem.level}, Q ${gem.quality}%)\n`;
+    });
+    return text;
 }
 
 function createItemCard(item) {
