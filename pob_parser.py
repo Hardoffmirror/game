@@ -4,6 +4,7 @@ PoB Build Parser
 """
 
 import base64
+import re
 import zlib
 import xml.etree.ElementTree as ET
 from typing import Dict, List, Optional
@@ -385,37 +386,83 @@ class PoBParser:
             return 'veiled'
 
         # Explicit моды - определяем префикс или суффикс по содержанию
-        # В PoE префиксы обычно дают: life, mana, armour, energy shield, damage, added damage
-        # Суффиксы обычно дают: resistances, attributes, accuracy, critical strike
+        # ВАЖНО: это приблизительная классификация, так как PoB не предоставляет точной информации
+        # о том, является ли мод префиксом или суффиксом
 
-        prefix_keywords = [
-            'life', 'mana', 'armour', 'armor', 'energy shield', 'evasion',
-            'physical damage', 'adds', 'increased damage', 'elemental damage',
-            'to maximum life', 'to maximum mana', 'to maximum energy shield',
-            'increased physical', 'increased spell', 'increased attack',
-            'socketed gems', 'reflects', 'thorns', 'regenerate', 'local',
-            'качество', 'quality', 'броня', 'уклонение'
+        # Префиксы - обычно дают оффенсивные и защитные характеристики
+        prefix_patterns = [
+            # Life/Mana/ES - только если это к максимуму (префикс)
+            (r'\+\d+\s+to maximum (life|mana|energy shield)', 'explicit_prefix'),
+            (r'\+\d+\s+к максимуму (здоровья|маны|энергетического щита)', 'explicit_prefix'),
+            # Добавленный урон (adds X to Y damage)
+            (r'adds \d+', 'explicit_prefix'),
+            (r'добавляет \d+', 'explicit_prefix'),
+            # Увеличенный физический урон (локальный)
+            (r'\d+% increased physical damage', 'explicit_prefix'),
+            (r'\d+% повышение физического урона', 'explicit_prefix'),
+            # Броня/Уклонение/ES (локальные)
+            (r'\+\d+\s+to (armour|evasion rating|energy shield)$', 'explicit_prefix'),
+            (r'\+\d+\s+(броня|уклонение|энергетический щит)$', 'explicit_prefix'),
+            # Качество
+            (r'\d+% increased quality', 'explicit_prefix'),
+            (r'\d+% повышение качества', 'explicit_prefix'),
+            # Моды на сокетах
+            (r'socketed gems', 'explicit_prefix'),
+            (r'вставленные самоцветы', 'explicit_prefix'),
         ]
 
-        suffix_keywords = [
-            'resistance', 'to all attributes', 'to strength', 'to dexterity', 'to intelligence',
-            'accuracy', 'critical strike', 'increased rarity', 'reduced attribute requirements',
-            'cannot be frozen', 'stun and block recovery', 'to all elemental resistances',
-            'movement speed', 'attack speed', 'cast speed', 'flask',
-            'сопротивление', 'к силе', 'к ловкости', 'к интеллекту', 'скорость',
-            'редкость'
+        # Суффиксы - обычно дают сопротивления, атрибуты и утилиту
+        suffix_patterns = [
+            # Сопротивления (самый явный признак суффикса)
+            (r'\+?\d+%\s+to (fire|cold|lightning|chaos) resistance', 'explicit_suffix'),
+            (r'\+?\d+%\s+к сопротивлению (огню|холоду|молнии|хаосу)', 'explicit_suffix'),
+            (r'\+?\d+%\s+to all elemental resistances', 'explicit_suffix'),
+            (r'\+?\d+%\s+ко всем сопротивлениям стихиям', 'explicit_suffix'),
+            # Атрибуты
+            (r'\+\d+\s+to (strength|dexterity|intelligence)', 'explicit_suffix'),
+            (r'\+\d+\s+к (силе|ловкости|интеллекту)', 'explicit_suffix'),
+            (r'\+\d+\s+to all attributes', 'explicit_suffix'),
+            (r'\+\d+\s+ко всем характеристикам', 'explicit_suffix'),
+            # Accuracy
+            (r'\+\d+\s+to accuracy rating', 'explicit_suffix'),
+            (r'\+\d+\s+к точности', 'explicit_suffix'),
+            # Critical Strike Chance (глобальный суффикс)
+            (r'\d+% increased (global )?critical strike chance', 'explicit_suffix'),
+            (r'\d+% повышение шанса критического удара', 'explicit_suffix'),
+            # Attack/Cast Speed
+            (r'\d+% increased attack speed', 'explicit_suffix'),
+            (r'\d+% increased cast speed', 'explicit_suffix'),
+            (r'\d+% повышение скорости атаки', 'explicit_suffix'),
+            (r'\d+% повышение скорости сотворения', 'explicit_suffix'),
+            # Movement Speed (только на ботинках)
+            (r'\d+% increased movement speed', 'explicit_suffix'),
+            (r'\d+% повышение скорости передвижения', 'explicit_suffix'),
+            # Rarity
+            (r'\d+% increased rarity', 'explicit_suffix'),
+            (r'\d+% повышение редкости', 'explicit_suffix'),
+            # Mana regen (суффикс)
+            (r'\+?\d+(\.\d+)? mana regenerated per second', 'explicit_suffix'),
+            (r'\+?\d+(\.\d+)? к восстановлению маны в секунду', 'explicit_suffix'),
+            # Life regen (суффикс)
+            (r'\+?\d+(\.\d+)? life regenerated per second', 'explicit_suffix'),
+            (r'\+?\d+(\.\d+)? к восстановлению здоровья в секунду', 'explicit_suffix'),
+            # Reduced attribute requirements
+            (r'\d+% reduced attribute requirements', 'explicit_suffix'),
+            (r'\d+% снижение требований к характеристикам', 'explicit_suffix'),
         ]
 
-        # Проверяем ключевые слова
-        for keyword in prefix_keywords:
-            if keyword in line_lower:
-                return 'explicit_prefix'
+        # Проверяем паттерны префиксов
+        for pattern, mod_type in prefix_patterns:
+            if re.search(pattern, line_lower):
+                return mod_type
 
-        for keyword in suffix_keywords:
-            if keyword in line_lower:
-                return 'explicit_suffix'
+        # Проверяем паттерны суффиксов
+        for pattern, mod_type in suffix_patterns:
+            if re.search(pattern, line_lower):
+                return mod_type
 
-        # По умолчанию считаем explicit модом (не разделяя)
+        # Если не смогли определить точно - возвращаем просто explicit
+        # (лучше не угадывать, чем показать неправильную информацию)
         return 'explicit'
 
     def _get_item_icon_url(self, name: str, base_type: str, slot_name: str) -> str:
