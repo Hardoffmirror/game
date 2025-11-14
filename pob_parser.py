@@ -394,21 +394,33 @@ class PoBParser:
             # Life/Mana/ES - только если это к максимуму (префикс)
             (r'\+\d+\s+to maximum (life|mana|energy shield)', 'explicit_prefix'),
             (r'\+\d+\s+к максимуму (здоровья|маны|энергетического щита)', 'explicit_prefix'),
+            (r'\+\d+\s+maximum (life|mana|energy shield)', 'explicit_prefix'),
             # Добавленный урон (adds X to Y damage)
             (r'adds \d+', 'explicit_prefix'),
             (r'добавляет \d+', 'explicit_prefix'),
             # Увеличенный физический урон (локальный)
             (r'\d+% increased physical damage', 'explicit_prefix'),
             (r'\d+% повышение физического урона', 'explicit_prefix'),
-            # Броня/Уклонение/ES (локальные)
-            (r'\+\d+\s+to (armour|evasion rating|energy shield)$', 'explicit_prefix'),
-            (r'\+\d+\s+(броня|уклонение|энергетический щит)$', 'explicit_prefix'),
+            # Броня/Уклонение/ES (локальные и глобальные)
+            (r'\+\d+\s+to (armour|evasion rating|energy shield)', 'explicit_prefix'),
+            (r'\+\d+\s+(броня|уклонение|энергетический щит)', 'explicit_prefix'),
+            (r'\d+% increased (armour|evasion|energy shield)', 'explicit_prefix'),
+            (r'\d+% повышение (брони|уклонения|энергетического щита)', 'explicit_prefix'),
             # Качество
             (r'\d+% increased quality', 'explicit_prefix'),
             (r'\d+% повышение качества', 'explicit_prefix'),
             # Моды на сокетах
             (r'socketed gems', 'explicit_prefix'),
             (r'вставленные самоцветы', 'explicit_prefix'),
+            # Spell damage и другие damage моды (обычно префикс)
+            (r'\d+% increased (spell|elemental|fire|cold|lightning|chaos) damage', 'explicit_prefix'),
+            (r'\d+% повышение урона (заклинаниями|стихиями|огнём|холодом|молнией|хаосом)', 'explicit_prefix'),
+            # Flat life/mana/ES на кольцах и амулетах
+            (r'^\+\d+\s+to (life|mana|energy shield)$', 'explicit_prefix'),
+            (r'^\+\d+\s+(здоровья|маны|энергетического щита)$', 'explicit_prefix'),
+            # Increased damage (глобальный)
+            (r'\d+% increased damage', 'explicit_prefix'),
+            (r'\d+% повышение урона', 'explicit_prefix'),
         ]
 
         # Суффиксы - обычно дают сопротивления, атрибуты и утилиту
@@ -418,14 +430,20 @@ class PoBParser:
             (r'\+?\d+%\s+к сопротивлению (огню|холоду|молнии|хаосу)', 'explicit_suffix'),
             (r'\+?\d+%\s+to all elemental resistances', 'explicit_suffix'),
             (r'\+?\d+%\s+ко всем сопротивлениям стихиям', 'explicit_suffix'),
+            (r'\+?\d+%\s+(fire|cold|lightning|chaos) resistance', 'explicit_suffix'),
+            (r'\+?\d+%\s+сопротивлени(е|я) (огню|холоду|молнии|хаосу)', 'explicit_suffix'),
             # Атрибуты
             (r'\+\d+\s+to (strength|dexterity|intelligence)', 'explicit_suffix'),
             (r'\+\d+\s+к (силе|ловкости|интеллекту)', 'explicit_suffix'),
             (r'\+\d+\s+to all attributes', 'explicit_suffix'),
             (r'\+\d+\s+ко всем характеристикам', 'explicit_suffix'),
+            (r'\+\d+\s+(strength|dexterity|intelligence)', 'explicit_suffix'),
+            (r'\+\d+\s+(сил[аы]|ловкост[иь]|интеллект[ау])', 'explicit_suffix'),
             # Accuracy
             (r'\+\d+\s+to accuracy rating', 'explicit_suffix'),
             (r'\+\d+\s+к точности', 'explicit_suffix'),
+            (r'\+\d+\s+accuracy rating', 'explicit_suffix'),
+            (r'\+\d+\s+точност[иь]', 'explicit_suffix'),
             # Critical Strike Chance (глобальный суффикс)
             (r'\d+% increased (global )?critical strike chance', 'explicit_suffix'),
             (r'\d+% повышение шанса критического удара', 'explicit_suffix'),
@@ -449,6 +467,12 @@ class PoBParser:
             # Reduced attribute requirements
             (r'\d+% reduced attribute requirements', 'explicit_suffix'),
             (r'\d+% снижение требований к характеристикам', 'explicit_suffix'),
+            # Stun recovery
+            (r'\d+% increased stun', 'explicit_suffix'),
+            (r'\d+% повышение восстановления после оглушения', 'explicit_suffix'),
+            # Avoid ailments
+            (r'\d+% (chance to )?avoid', 'explicit_suffix'),
+            (r'\d+% шанс избежать', 'explicit_suffix'),
         ]
 
         # Проверяем паттерны префиксов
@@ -816,7 +840,7 @@ class PoBParser:
 
                 # Добавляем информацию о группе гемов
                 gem_group = {
-                    'label': skill.get('label', 'Камни'),
+                    'label': skill.get('label', 'Самоцветы'),
                     'enabled': skill.get('enabled', 'true'),
                     'gems': skill.get('gems', [])
                 }
