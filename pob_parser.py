@@ -62,7 +62,7 @@ class PoBParser:
         Извлекает ВСЕ предметы из билда, разделяя их по категориям
 
         Returns:
-            Словарь с категориями: equipment, jewels, flasks
+            Словарь с категориям: equipment, jewels, flasks
         """
         if self.root is None:
             raise ValueError("Билд не был распарсен.")
@@ -75,21 +75,42 @@ class PoBParser:
         if items_section is None:
             return {'equipment': equipment, 'jewels': jewels, 'flasks': flasks}
 
-        # Собираем все слоты
+        # Определяем активный ItemSet
+        active_item_set_id = items_section.get('activeItemSet')
+        use_second_weapon_set = items_section.get('useSecondWeaponSet', 'false').lower() == 'true'
+
+        # Собираем все слоты вместе с их ItemSet контекстом
         all_slots = []
 
-        # Слоты из основной секции
+        # Слоты из основной секции (старый формат)
         for slot in items_section.findall('Slot'):
-            all_slots.append(slot)
+            all_slots.append((slot, None))  # (slot, item_set)
 
-        # Слоты из ItemSet (если есть несколько сетов)
+        # Слоты из ItemSet (новый формат)
+        # Берем только из активного ItemSet
+        active_item_sets = []
         for item_set in items_section.findall('ItemSet'):
-            for slot in item_set.findall('Slot'):
-                all_slots.append(slot)
+            item_set_id = item_set.get('id')
+
+            # Проверяем, является ли этот ItemSet активным
+            is_active = False
+            if active_item_set_id:
+                # Если указан activeItemSet, используем его
+                is_active = (item_set_id == active_item_set_id)
+            else:
+                # Иначе проверяем useSecondWeaponSet
+                item_set_use_second = item_set.get('useSecondWeaponSet', 'false').lower() == 'true'
+                is_active = (item_set_use_second == use_second_weapon_set)
+
+            # Если это активный сет, добавляем его слоты и запоминаем сам сет
+            if is_active:
+                active_item_sets.append(item_set)
+                for slot in item_set.findall('Slot'):
+                    all_slots.append((slot, item_set))  # (slot, item_set)
 
         # Обрабатываем каждый слот
         processed_item_ids = set()
-        for slot in all_slots:
+        for slot, parent_item_set in all_slots:
             slot_name = slot.get('name', 'Unknown')
             item_id = slot.get('itemId')
 
@@ -98,13 +119,21 @@ class PoBParser:
 
             processed_item_ids.add(item_id)
 
-            # Находим предмет по ID (проверяем как в основной секции, так и в ItemSet)
-            item_element = items_section.find(f"./Item[@id='{item_id}']")
+            # Находим предмет по ID
+            item_element = None
 
-            # Если не найден в основной секции, ищем в ItemSet
+            # Сначала ищем в том же ItemSet, откуда взят слот
+            if parent_item_set is not None:
+                item_element = parent_item_set.find(f"./Item[@id='{item_id}']")
+
+            # Если не найден, ищем в основной секции Items
             if item_element is None:
-                for item_set in items_section.findall('ItemSet'):
-                    item_element = item_set.find(f".//Item[@id='{item_id}']")
+                item_element = items_section.find(f"./Item[@id='{item_id}']")
+
+            # Если всё ещё не найден, ищем во всех активных ItemSet
+            if item_element is None:
+                for item_set in active_item_sets:
+                    item_element = item_set.find(f"./Item[@id='{item_id}']")
                     if item_element is not None:
                         break
 
