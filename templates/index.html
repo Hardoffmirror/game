@@ -10,12 +10,7 @@
     <div class="container">
         <header>
             <h1>PoE Build Converter</h1>
-            <div class="language-toggle">
-                <button id="langToggle" class="lang-btn" title="Переключить язык">
-                    <span class="lang-flag">🇬🇧</span>
-                    <span class="lang-text">EN</span>
-                </button>
-            </div>
+            <p class="subtitle">Преобразование билдов из Path of Building</p>
         </header>
 
         <div class="input-section">
@@ -27,27 +22,39 @@
         <div id="loading" class="loading">Обработка...</div>
 
         <div id="results">
-            <!-- Вещи -->
+            <!-- Информация о билде -->
+            <div id="buildInfo" class="section build-info"></div>
+
+            <!-- Экипировка -->
             <div class="section">
                 <h2>Экипировка</h2>
-                <div id="itemsList" class="items-grid"></div>
+                <p class="section-description">Оружие, броня и украшения</p>
+                <div id="equipmentList" class="items-grid"></div>
             </div>
 
-            <!-- Джевелы -->
+            <!-- Самоцветы (Jewels) -->
             <div class="section">
-                <h2>Джевелы</h2>
-                <div id="gemsList" class="gems-container"></div>
+                <h2>Самоцветы (Jewels)</h2>
+                <p class="section-description">Пассивные предметы в дереве талантов</p>
+                <div id="jewelsList" class="items-grid"></div>
             </div>
 
             <!-- Фласки -->
             <div class="section">
                 <h2>Фласки</h2>
+                <p class="section-description">Зелья и бафы</p>
                 <div id="flasksList" class="items-grid"></div>
+            </div>
+
+            <!-- Камни умений (Gems) - опционально -->
+            <div class="section">
+                <h2>Камни умений (Gems)</h2>
+                <p class="section-description">Активные и поддерживающие камни в сокетах</p>
+                <div id="gemsList" class="gems-container"></div>
             </div>
         </div>
     </div>
 
-    <script src="{{ url_for('static', filename='js/translations.js') }}"></script>
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 </html>
