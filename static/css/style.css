@@ -249,12 +249,33 @@ header h1 {
     border-left-color: #8888ff;
 }
 
+.mod-enchant {
+    color: #b4a7d6;
+    border-left-color: #b4a7d6;
+}
+
+.mod-prefix {
+    color: #8899ff;
+    border-left-color: #8899ff;
+}
+
+.mod-suffix {
+    color: #88ccff;
+    border-left-color: #88ccff;
+}
+
 .mod-explicit {
     color: #8899ff;
 }
 
 .mod-crafted {
     color: #b4b4ff;
+    border-left-color: #b4b4ff;
+}
+
+.mod-fractured {
+    color: #e0a050;
+    border-left-color: #e0a050;
 }
 
 .item-properties {
@@ -264,15 +285,48 @@ header h1 {
 }
 
 .property {
-    color: var(--text-secondary);
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     margin: 3px 0;
+    color: #d0d0d0;
 }
 
-.corrupted {
-    color: #d20000;
+.property-name {
+    color: var(--text-secondary);
+}
+
+.item-requirements {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    font-size: 0.85rem;
+}
+
+.requirements-title {
+    color: var(--text-secondary);
+    margin-bottom: 5px;
+}
+
+.requirement {
+    color: var(--text-secondary);
+    margin: 2px 0;
+}
+
+.item-status {
     font-weight: bold;
     margin-top: 10px;
+    padding: 5px;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.item-status.corrupted {
+    color: #d20000;
+    background-color: rgba(210, 0, 0, 0.1);
+}
+
+.item-status.mirrored {
+    color: #77ddff;
+    background-color: rgba(119, 221, 255, 0.1);
 }
 
 /* Gems (камни умений) */

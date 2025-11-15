@@ -127,7 +127,7 @@ class PoBParser:
 
     def _parse_item(self, item_element: ET.Element, slot_name: str) -> Dict:
         """
-        Парсит отдельный предмет (Item)
+        Парсит отдельный предмет (Item) с разделением модов на префиксы и суффиксы
 
         Args:
             item_element: XML элемент предмета
@@ -145,9 +145,21 @@ class PoBParser:
         base_type = ""
         implicits = []
         explicits = []
+        prefixes = []
+        suffixes = []
+        crafted_mods = []
+        enchant_mods = []
+        fractured_mods = []
         other_mods = []
         properties = {}
+        requirements = {}
         corrupted = False
+        mirrored = False
+
+        # Для разбора модов
+        current_section = None
+        implicit_count = 0
+        implicit_read = 0
 
         i = 0
         while i < len(lines):
@@ -160,17 +172,25 @@ class PoBParser:
                 continue
 
             # Название предмета (после Rarity)
-            if not name or name == "Unknown":
+            if rarity != "NORMAL" and (not name or name == "Unknown"):
                 name = line
                 i += 1
-                # Следующая строка может быть base type
-                if i < len(lines) and not lines[i].startswith('---'):
+                # Следующая строка может быть base type для rare/magic
+                if i < len(lines) and not lines[i].startswith('---') and not lines[i].startswith('Rarity:'):
                     base_type = lines[i]
                     i += 1
                 continue
 
+            # Для normal предметов название = base type
+            if rarity == "NORMAL" and (not name or name == "Unknown"):
+                name = line
+                base_type = line
+                i += 1
+                continue
+
             # Разделители секций
             if line.startswith('---'):
+                current_section = "separator"
                 i += 1
                 continue
 
@@ -180,39 +200,98 @@ class PoBParser:
                 i += 1
                 continue
 
+            # Mirrored
+            if line.lower() in ['mirrored', 'зеркальный']:
+                mirrored = True
+                i += 1
+                continue
+
             # Implicits
             if line.startswith('Implicits:'):
                 try:
                     implicit_count = int(line.split(':')[1].strip())
+                    current_section = "implicits"
+                    implicit_read = 0
                     i += 1
-                    # Читаем следующие N строк как имплициты
-                    for _ in range(implicit_count):
-                        if i < len(lines):
-                            implicits.append(lines[i])
-                            i += 1
                 except:
                     i += 1
                 continue
 
-            # Свойства (Item Level, Sockets, Quality, etc.)
+            # Читаем имплициты
+            if current_section == "implicits" and implicit_read < implicit_count:
+                # Проверяем на специальные моды
+                if '{fractured}' in line.lower():
+                    fractured_mods.append(self._parse_mod_line(line))
+                else:
+                    implicits.append(self._parse_mod_line(line))
+                implicit_read += 1
+                if implicit_read >= implicit_count:
+                    current_section = "explicits"  # Переходим к эксплицитам
+                i += 1
+                continue
+
+            # Свойства (Physical Damage, Elemental Damage, Critical Strike Chance, etc.)
             if ':' in line and any(kw in line for kw in [
-                'Item Level:', 'Quality:', 'Sockets:', 'LevelReq:',
-                'Requirements:', 'Radius:', 'Limited to:', 'Unique ID:'
-            ]):
+                'Physical Damage:', 'Elemental Damage:', 'Chaos Damage:',
+                'Critical Strike Chance:', 'Attacks per Second:', 'Weapon Range:',
+                'Armour:', 'Evasion Rating:', 'Energy Shield:', 'Ward:',
+                'Block:', 'Quality:', 'Sockets:', 'Item Level:',
+                'Unique ID:', 'Radius:', 'Limited to:'
+            ]) and not line.startswith('{'):
                 key, value = line.split(':', 1)
                 properties[key.strip()] = value.strip()
                 i += 1
                 continue
 
-            # Моды с префиксами (crafted, enchant, etc.)
-            if line.startswith('{') and '}' in line:
-                other_mods.append(line)
+            # Requirements
+            if line.startswith('Requirements:'):
+                i += 1
+                # Читаем следующие строки как requirements
+                while i < len(lines) and not lines[i].startswith('---'):
+                    req_line = lines[i]
+                    if ':' in req_line:
+                        key, value = req_line.split(':', 1)
+                        requirements[key.strip()] = value.strip()
+                        i += 1
+                    else:
+                        break
+                continue
+
+            # Специальные моды с тегами
+            if line.startswith('{'):
+                mod_info = self._parse_mod_line(line)
+
+                # Определяем тип мода по тегу
+                line_lower = line.lower()
+                if '{crafted}' in line_lower or '{custom}' in line_lower:
+                    crafted_mods.append(mod_info)
+                elif '{enchant}' in line_lower:
+                    enchant_mods.append(mod_info)
+                elif '{fractured}' in line_lower:
+                    fractured_mods.append(mod_info)
+                else:
+                    # Проверяем на prefix/suffix в тегах
+                    if self._is_prefix_from_tags(line):
+                        prefixes.append(mod_info)
+                    elif self._is_suffix_from_tags(line):
+                        suffixes.append(mod_info)
+                    else:
+                        explicits.append(mod_info)
                 i += 1
                 continue
 
-            # Остальное - эксплициты
-            if line and not line.startswith('---'):
-                explicits.append(line)
+            # Остальные строки - это explicit моды (после имплицитов или разделителя)
+            if (current_section in ["separator", "explicits"]) and line and not line.startswith('---'):
+                mod_info = self._parse_mod_line(line)
+                # Пытаемся определить prefix/suffix
+                if self._is_likely_prefix(line):
+                    prefixes.append(mod_info)
+                elif self._is_likely_suffix(line):
+                    suffixes.append(mod_info)
+                else:
+                    explicits.append(mod_info)
+                i += 1
+                continue
 
             i += 1
 
@@ -221,14 +300,106 @@ class PoBParser:
             'rarity': rarity,
             'name': name,
             'base_type': base_type,
-            'item_type': base_type,  # Для определения Jewel/Flask
+            'item_type': base_type,
             'implicits': implicits,
             'explicits': explicits,
+            'prefixes': prefixes,
+            'suffixes': suffixes,
+            'crafted_mods': crafted_mods,
+            'enchant_mods': enchant_mods,
+            'fractured_mods': fractured_mods,
             'other_mods': other_mods,
             'properties': properties,
+            'requirements': requirements,
             'corrupted': corrupted,
+            'mirrored': mirrored,
             'raw_text': item_text
         }
+
+    def _parse_mod_line(self, line: str) -> Dict:
+        """
+        Парсит строку мода и извлекает метаданные
+
+        Args:
+            line: Строка с модом
+
+        Returns:
+            Словарь с информацией о моде
+        """
+        mod_text = line
+        tags = []
+        mod_type = None
+
+        # Извлекаем теги
+        if '{' in line and '}' in line:
+            import re
+            tag_matches = re.findall(r'\{([^}]+)\}', line)
+            tags = tag_matches
+
+            # Определяем тип мода
+            for tag in tags:
+                tag_lower = tag.lower()
+                if 'crafted' in tag_lower or 'custom' in tag_lower:
+                    mod_type = 'crafted'
+                elif 'enchant' in tag_lower:
+                    mod_type = 'enchant'
+                elif 'fractured' in tag_lower:
+                    mod_type = 'fractured'
+                elif 'prefix' in tag_lower:
+                    mod_type = 'prefix'
+                elif 'suffix' in tag_lower:
+                    mod_type = 'suffix'
+
+            # Убираем теги из текста для отображения
+            mod_text = re.sub(r'\{[^}]+\}', '', line).strip()
+
+        return {
+            'text': mod_text,
+            'raw': line,
+            'tags': tags,
+            'type': mod_type
+        }
+
+    def _is_prefix_from_tags(self, line: str) -> bool:
+        """Определяет, является ли мод префиксом по тегам"""
+        return '{prefix}' in line.lower() or '{tags:prefix' in line.lower()
+
+    def _is_suffix_from_tags(self, line: str) -> bool:
+        """Определяет, является ли мод суффиксом по тегам"""
+        return '{suffix}' in line.lower() or '{tags:suffix' in line.lower()
+
+    def _is_likely_prefix(self, line: str) -> bool:
+        """
+        Эвристика для определения префикса
+        Префиксы обычно дают: жизнь, ману, физ урон, элем урон, добавленный урон
+        """
+        line_lower = line.lower()
+        prefix_keywords = [
+            'adds', 'to maximum life', 'to maximum mana',
+            'to maximum energy shield', 'to armour', 'to evasion',
+            'increased physical damage', 'increased spell damage',
+            'to # physical damage', 'to # cold damage',
+            'to # fire damage', 'to # lightning damage',
+            'to quality', 'minions deal', 'minions have',
+            'increased elemental damage', 'gain',
+            'regenerate', 'leech'
+        ]
+        return any(kw in line_lower for kw in prefix_keywords)
+
+    def _is_likely_suffix(self, line: str) -> bool:
+        """
+        Эвристика для определения суффикса
+        Суффиксы обычно дают: сопротивления, атрибуты, криты, скорость атаки/каста
+        """
+        line_lower = line.lower()
+        suffix_keywords = [
+            'resistance', '+# to strength', '+# to dexterity', '+# to intelligence',
+            '+# to all attributes', 'increased attack speed', 'increased cast speed',
+            'increased critical strike', 'to critical strike multiplier',
+            '+#% to cold resistance', '+#% to fire resistance', '+#% to lightning resistance',
+            '+#% to chaos resistance', 'increased rarity', 'reduced attribute requirements'
+        ]
+        return any(kw in line_lower for kw in suffix_keywords)
 
     def get_gems(self) -> List[Dict]:
         """

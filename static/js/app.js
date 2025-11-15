@@ -122,63 +122,131 @@ function displayItems(items, containerId) {
 function createItemCard(item) {
     const rarityClass = getRarityClass(item.rarity);
 
-    // Имплициты
-    const implicitsHtml = item.implicits && item.implicits.length > 0
-        ? `
-            <div class="mod-section">
-                <div class="mod-section-title">Имплициты:</div>
-                ${item.implicits.map(mod => `<div class="mod-line mod-implicit">${escapeHtml(mod)}</div>`).join('')}
-            </div>
-        `
-        : '';
+    // Функция для отображения мода (может быть объект или строка)
+    const renderMod = (mod) => {
+        if (typeof mod === 'object' && mod.text) {
+            return escapeHtml(mod.text);
+        }
+        return escapeHtml(mod);
+    };
 
-    // Эксплициты
-    const explicitsHtml = item.explicits && item.explicits.length > 0
-        ? `
-            <div class="mod-section">
-                <div class="mod-section-title">Моды:</div>
-                ${item.explicits.map(mod => `<div class="mod-line mod-explicit">${escapeHtml(mod)}</div>`).join('')}
-            </div>
-        `
-        : '';
-
-    // Прочие моды (crafted, enchant, etc.)
-    const otherModsHtml = item.other_mods && item.other_mods.length > 0
-        ? `
-            <div class="mod-section">
-                ${item.other_mods.map(mod => `<div class="mod-line mod-crafted">${escapeHtml(mod)}</div>`).join('')}
-            </div>
-        `
-        : '';
-
-    // Свойства
+    // Свойства предмета (урон, защита, и т.д.)
     const propertiesHtml = item.properties && Object.keys(item.properties).length > 0
         ? `
             <div class="item-properties">
                 ${Object.entries(item.properties).map(([key, value]) =>
-                    `<div class="property">${escapeHtml(key)}: ${escapeHtml(value)}</div>`
+                    `<div class="property"><span class="property-name">${escapeHtml(key)}:</span> ${escapeHtml(value)}</div>`
                 ).join('')}
             </div>
         `
         : '';
 
-    // Corrupted
-    const corruptedHtml = item.corrupted
-        ? '<div class="corrupted">Corrupted</div>'
+    // Требования
+    const requirementsHtml = item.requirements && Object.keys(item.requirements).length > 0
+        ? `
+            <div class="item-requirements">
+                <div class="requirements-title">Requirements:</div>
+                ${Object.entries(item.requirements).map(([key, value]) =>
+                    `<div class="requirement">${escapeHtml(key)}: ${escapeHtml(value)}</div>`
+                ).join('')}
+            </div>
+        `
         : '';
+
+    // Имплициты
+    const implicitsHtml = item.implicits && item.implicits.length > 0
+        ? `
+            <div class="mod-section">
+                ${item.implicits.map(mod => `<div class="mod-line mod-implicit">${renderMod(mod)}</div>`).join('')}
+            </div>
+        `
+        : '';
+
+    // Enchant моды
+    const enchantModsHtml = item.enchant_mods && item.enchant_mods.length > 0
+        ? `
+            <div class="mod-section">
+                ${item.enchant_mods.map(mod => `<div class="mod-line mod-enchant">${renderMod(mod)}</div>`).join('')}
+            </div>
+        `
+        : '';
+
+    // Префиксы
+    const prefixesHtml = item.prefixes && item.prefixes.length > 0
+        ? `
+            <div class="mod-section">
+                <div class="mod-section-title">Префиксы:</div>
+                ${item.prefixes.map(mod => `<div class="mod-line mod-prefix">${renderMod(mod)}</div>`).join('')}
+            </div>
+        `
+        : '';
+
+    // Суффиксы
+    const suffixesHtml = item.suffixes && item.suffixes.length > 0
+        ? `
+            <div class="mod-section">
+                <div class="mod-section-title">Суффиксы:</div>
+                ${item.suffixes.map(mod => `<div class="mod-line mod-suffix">${renderMod(mod)}</div>`).join('')}
+            </div>
+        `
+        : '';
+
+    // Крафтовые моды
+    const craftedModsHtml = item.crafted_mods && item.crafted_mods.length > 0
+        ? `
+            <div class="mod-section">
+                <div class="mod-section-title">Крафтовые:</div>
+                ${item.crafted_mods.map(mod => `<div class="mod-line mod-crafted">${renderMod(mod)}</div>`).join('')}
+            </div>
+        `
+        : '';
+
+    // Fractured моды
+    const fracturedModsHtml = item.fractured_mods && item.fractured_mods.length > 0
+        ? `
+            <div class="mod-section">
+                <div class="mod-section-title">Fractured:</div>
+                ${item.fractured_mods.map(mod => `<div class="mod-line mod-fractured">${renderMod(mod)}</div>`).join('')}
+            </div>
+        `
+        : '';
+
+    // Остальные эксплициты (если не были классифицированы)
+    const explicitsHtml = item.explicits && item.explicits.length > 0
+        ? `
+            <div class="mod-section">
+                <div class="mod-section-title">Моды:</div>
+                ${item.explicits.map(mod => `<div class="mod-line mod-explicit">${renderMod(mod)}</div>`).join('')}
+            </div>
+        `
+        : '';
+
+    // Corrupted и Mirrored
+    const statusHtml = [];
+    if (item.corrupted) {
+        statusHtml.push('<div class="item-status corrupted">Corrupted</div>');
+    }
+    if (item.mirrored) {
+        statusHtml.push('<div class="item-status mirrored">Mirrored</div>');
+    }
 
     return `
         <div class="item-card ${rarityClass}">
             <div class="item-slot">${escapeHtml(item.slot)}</div>
             <div class="item-name ${rarityClass}">${escapeHtml(item.name)}</div>
-            ${item.base_type ? `<div class="item-base-type">${escapeHtml(item.base_type)}</div>` : ''}
+            ${item.base_type && item.base_type !== item.name ? `<div class="item-base-type">${escapeHtml(item.base_type)}</div>` : ''}
+            ${propertiesHtml}
+            ${requirementsHtml}
             <div class="item-mods">
+                ${enchantModsHtml}
                 ${implicitsHtml}
-                ${otherModsHtml}
+                ${prefixesHtml}
+                ${suffixesHtml}
+                ${craftedModsHtml}
+                ${fracturedModsHtml}
                 ${explicitsHtml}
             </div>
-            ${propertiesHtml}
-            ${corruptedHtml}
+            ${statusHtml.join('')}
         </div>
     `;
 }
