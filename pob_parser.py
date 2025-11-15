@@ -98,8 +98,17 @@ class PoBParser:
 
             processed_item_ids.add(item_id)
 
-            # Находим предмет по ID
+            # Находим предмет по ID (проверяем как в основной секции, так и в ItemSet)
             item_element = items_section.find(f"./Item[@id='{item_id}']")
+
+            # Если не найден в основной секции, ищем в ItemSet
+            if item_element is None:
+                for item_set in items_section.findall('ItemSet'):
+                    item_element = item_set.find(f".//Item[@id='{item_id}']")
+                    if item_element is not None:
+                        break
+
+            # Если всё равно не найден, пропускаем
             if item_element is None:
                 continue
 
