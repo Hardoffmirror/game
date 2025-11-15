@@ -107,13 +107,15 @@ class PoBParser:
             item_data = self._parse_item(item_element, slot_name)
 
             # Определяем категорию предмета
-            item_type = item_data.get('item_type', '')
+            item_type = item_data.get('item_type', '').lower()
+            slot_lower = slot_name.lower()
+            name_lower = item_data.get('name', '').lower()
 
-            if 'Jewel' in item_type:
-                # Это Jewel (самоцвет) - в пассивное дерево
+            # Проверяем jewels (самоцветы) - по типу, слоту или названию
+            if ('jewel' in item_type or 'jewel' in slot_lower or 'jewel' in name_lower):
                 jewels.append(item_data)
-            elif 'Flask' in item_type or 'flask' in slot_name.lower():
-                # Это фласка
+            # Проверяем flasks (флаконы) - по типу, слоту или названию
+            elif ('flask' in item_type or 'flask' in slot_lower or 'flask' in name_lower):
                 flasks.append(item_data)
             else:
                 # Это обычная экипировка
@@ -281,7 +283,30 @@ class PoBParser:
                 continue
 
             # Остальные строки - это explicit моды (после имплицитов или разделителя)
-            if (current_section in ["separator", "explicits"]) and line and not line.startswith('---'):
+            # Также обрабатываем строки, которые выглядят как моды, но не были обработаны выше
+            if current_section in ["separator", "explicits"]:
+                if line and not line.startswith('---'):
+                    mod_info = self._parse_mod_line(line)
+                    # Пытаемся определить prefix/suffix
+                    if self._is_likely_prefix(line):
+                        prefixes.append(mod_info)
+                    elif self._is_likely_suffix(line):
+                        suffixes.append(mod_info)
+                    else:
+                        explicits.append(mod_info)
+                i += 1
+                continue
+
+            # Если у нас есть название и база, и строка не пустая и не служебная
+            # то это вероятно мод (для предметов без разделителей, например jewels)
+            if (name and name != "Unknown" and base_type and
+                line and not line.startswith('---') and
+                not line.startswith('Rarity:') and
+                ':' not in line):  # Это не свойство
+                # Переводим в секцию эксплицитов если ещё не перешли
+                if current_section is None:
+                    current_section = "explicits"
+
                 mod_info = self._parse_mod_line(line)
                 # Пытаемся определить prefix/suffix
                 if self._is_likely_prefix(line):
@@ -371,33 +396,81 @@ class PoBParser:
     def _is_likely_prefix(self, line: str) -> bool:
         """
         Эвристика для определения префикса
-        Префиксы обычно дают: жизнь, ману, физ урон, элем урон, добавленный урон
+        Префиксы обычно дают: жизнь, ману, физ урон, элем урон, добавленный урон, регены, лич
         """
         line_lower = line.lower()
         prefix_keywords = [
-            'adds', 'to maximum life', 'to maximum mana',
-            'to maximum energy shield', 'to armour', 'to evasion',
+            # Жизнь, мана, ES
+            'to maximum life', 'to maximum mana', 'to maximum energy shield',
+            '+# to maximum life', '+# to maximum mana', '+# to maximum energy shield',
+            # Регенерация
+            'life regenerated per second', 'mana regenerated per second',
+            'energy shield recharge', 'regenerate', 'life regeneration',
+            # Защита
+            'to armour', 'to evasion', '+# to armour', '+# to evasion',
+            'to evasion rating', 'to maximum ward',
+            # Урон (добавленный)
+            'adds', 'to attack', 'to spell',
+            'added physical damage', 'added cold damage', 'added fire damage',
+            'added lightning damage', 'added chaos damage',
+            'to physical damage', 'to cold damage', 'to fire damage',
+            'to lightning damage', 'to chaos damage',
+            # Увеличенный урон
             'increased physical damage', 'increased spell damage',
-            'to # physical damage', 'to # cold damage',
-            'to # fire damage', 'to # lightning damage',
-            'to quality', 'minions deal', 'minions have',
-            'increased elemental damage', 'gain',
-            'regenerate', 'leech'
+            'increased elemental damage', 'increased damage',
+            'increased attack damage', 'more damage',
+            # Лич
+            'leech', 'leeched as',
+            # Миньоны
+            'minions deal', 'minions have', 'minions gain',
+            # Качество и разное
+            'to quality', 'gain', 'grants level',
+            # Блок и уклонение
+            'chance to block', 'chance to dodge',
+            # Площадь действия
+            'increased area of effect', 'area of effect'
         ]
         return any(kw in line_lower for kw in prefix_keywords)
 
     def _is_likely_suffix(self, line: str) -> bool:
         """
         Эвристика для определения суффикса
-        Суффиксы обычно дают: сопротивления, атрибуты, криты, скорость атаки/каста
+        Суффиксы обычно дают: сопротивления, атрибуты, криты, скорость атаки/каста, редкость
         """
         line_lower = line.lower()
         suffix_keywords = [
-            'resistance', '+# to strength', '+# to dexterity', '+# to intelligence',
-            '+# to all attributes', 'increased attack speed', 'increased cast speed',
-            'increased critical strike', 'to critical strike multiplier',
-            '+#% to cold resistance', '+#% to fire resistance', '+#% to lightning resistance',
-            '+#% to chaos resistance', 'increased rarity', 'reduced attribute requirements'
+            # Сопротивления
+            'resistance', 'to cold resistance', 'to fire resistance',
+            'to lightning resistance', 'to chaos resistance',
+            '+#% to cold resistance', '+#% to fire resistance',
+            '+#% to lightning resistance', '+#% to chaos resistance',
+            'to all elemental resistances', 'to elemental resistances',
+            # Атрибуты
+            'to strength', 'to dexterity', 'to intelligence',
+            '+# to strength', '+# to dexterity', '+# to intelligence',
+            'to all attributes', '+# to all attributes',
+            # Криты
+            'increased critical strike chance', 'to critical strike chance',
+            'to critical strike multiplier', 'increased global critical strike',
+            'critical strike', 'additional critical strike multiplier',
+            # Скорости
+            'increased attack speed', 'increased cast speed',
+            'to attack speed', 'to cast speed',
+            'attack and cast speed', 'increased movement speed',
+            # Редкость и количество предметов
+            'increased rarity', 'rarity of items found',
+            'increased item quantity',
+            # Реквайрменты и разное
+            'reduced attribute requirements', 'reduced requirements',
+            # Стихийный урон (чаще суффикс)
+            'increased cold damage', 'increased fire damage',
+            'increased lightning damage',
+            # Точность
+            'to accuracy rating', 'increased accuracy',
+            # Длительность
+            'increased skill effect duration', 'skill duration',
+            # Мана
+            'reduced mana cost', 'to total mana cost'
         ]
         return any(kw in line_lower for kw in suffix_keywords)
 
