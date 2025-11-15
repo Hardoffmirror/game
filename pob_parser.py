@@ -32,12 +32,35 @@ class PoBParser:
             XML строка с данными билда
         """
         try:
-            decoded = base64.urlsafe_b64decode(self.build_code)
+            # Пытаемся исправить паддинг, если необходимо
+            build_code = self.build_code
+
+            # Добавляем паддинг, если его не хватает
+            missing_padding = len(build_code) % 4
+            if missing_padding:
+                build_code += '=' * (4 - missing_padding)
+
+            decoded = base64.urlsafe_b64decode(build_code)
             decompressed = zlib.decompress(decoded)
             xml_string = decompressed.decode('utf-8')
             return xml_string
+        except zlib.error as e:
+            raise ValueError(
+                f"Ошибка декодирования билда: данные повреждены или неполные.\n"
+                f"Убедитесь, что вы скопировали ПОЛНЫЙ код билда из Path of Building.\n"
+                f"Детали: {e}"
+            )
+        except base64.binascii.Error as e:
+            raise ValueError(
+                f"Ошибка декодирования билда: некорректный формат base64.\n"
+                f"Код билда должен быть скопирован полностью из Path of Building.\n"
+                f"Детали: {e}"
+            )
         except Exception as e:
-            raise ValueError(f"Ошибка декодирования билда: {e}")
+            raise ValueError(
+                f"Ошибка декодирования билда: {type(e).__name__}: {e}\n"
+                f"Проверьте, что код билда скопирован полностью и корректно."
+            )
 
     def parse(self) -> None:
         """Парсит XML данные билда"""
