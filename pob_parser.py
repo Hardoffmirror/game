@@ -182,11 +182,88 @@ class PoBParser:
                 # Это обычная экипировка
                 equipment.append(item_data)
 
+        # НОВЫЙ КОД: Обрабатываем ВСЕ Item элементы, которые не были привязаны к слотам
+        # Это важно для jewels, которые могут существовать без привязки к Slot
+
+        # Собираем все Item элементы из основной секции
+        all_item_elements = items_section.findall('./Item')
+
+        # Также собираем Items из активных ItemSet
+        for item_set in active_item_sets:
+            all_item_elements.extend(item_set.findall('./Item'))
+
+        # Обрабатываем непривязанные Items
+        for item_element in all_item_elements:
+            item_id = item_element.get('id')
+
+            # Пропускаем, если уже обработали этот предмет
+            if not item_id or item_id in processed_item_ids:
+                continue
+
+            processed_item_ids.add(item_id)
+
+            # Для непривязанных предметов пытаемся определить слот из текста
+            item_text = item_element.text or ""
+            slot_name = self._guess_slot_from_item(item_text)
+
+            # Парсим предмет
+            item_data = self._parse_item(item_element, slot_name)
+
+            # Определяем категорию предмета
+            item_type = item_data.get('item_type', '').lower()
+            slot_lower = slot_name.lower()
+            name_lower = item_data.get('name', '').lower()
+            base_type_lower = item_data.get('base_type', '').lower()
+
+            # Проверяем jewels - по типу, слоту, названию или base_type
+            if ('jewel' in item_type or 'jewel' in slot_lower or
+                'jewel' in name_lower or 'jewel' in base_type_lower):
+                jewels.append(item_data)
+            # Проверяем flasks
+            elif ('flask' in item_type or 'flask' in slot_lower or
+                  'flask' in name_lower or 'flask' in base_type_lower):
+                flasks.append(item_data)
+            else:
+                # Это обычная экипировка
+                equipment.append(item_data)
+
         return {
             'equipment': equipment,
             'jewels': jewels,
             'flasks': flasks
         }
+
+    def _guess_slot_from_item(self, item_text: str) -> str:
+        """
+        Пытается определить слот предмета из его текста
+        Используется для Items без привязки к Slot
+
+        Args:
+            item_text: Текст предмета
+
+        Returns:
+            Предполагаемое название слота
+        """
+        item_text_lower = item_text.lower()
+
+        # Различные типы jewels
+        if 'cluster jewel' in item_text_lower:
+            return 'Passive Jewel (Cluster)'
+        elif 'timeless jewel' in item_text_lower:
+            return 'Passive Jewel (Timeless)'
+        elif 'prismatic jewel' in item_text_lower:
+            return 'Passive Jewel (Prismatic)'
+        elif 'abyss jewel' in item_text_lower or 'abyssal' in item_text_lower:
+            return 'Abyssal Socket'
+        elif 'jewel' in item_text_lower:
+            return 'Passive Jewel'
+
+        # Flask
+        if 'flask' in item_text_lower:
+            return 'Flask'
+
+        # Если не можем определить - возвращаем общее название
+        return 'Unknown Slot'
 
     def _parse_item(self, item_element: ET.Element, slot_name: str) -> Dict:
         """
