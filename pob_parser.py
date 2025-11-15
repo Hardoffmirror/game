@@ -395,82 +395,118 @@ class PoBParser:
 
     def _is_likely_prefix(self, line: str) -> bool:
         """
-        Эвристика для определения префикса
-        Префиксы обычно дают: жизнь, ману, физ урон, элем урон, добавленный урон, регены, лич
+        Улучшенная эвристика для определения префикса
+        Префиксы обычно дают: FLAT жизнь/мана/ES, добавленный урон, локальный урон, регены, лич
+
+        ВАЖНО: % increased maximum Life/Mana/ES - это SUFFIX, не PREFIX!
         """
         line_lower = line.lower()
+
+        # ИСКЛЮЧЕНИЯ - это НЕ префиксы (проверяем первыми!)
+        # % increased maximum Life/Mana/ES - SUFFIX
+        if any(kw in line_lower for kw in [
+            '% increased maximum life',
+            '% increased maximum mana',
+            '% increased maximum energy shield',
+            'increased maximum life',
+            'increased maximum mana',
+            'increased maximum energy shield'
+        ]):
+            return False
+
+        # Теперь проверяем префиксы
         prefix_keywords = [
-            # Жизнь, мана, ES
+            # Жизнь, мана, ES (FLAT, не процентные!)
             'to maximum life', 'to maximum mana', 'to maximum energy shield',
             '+# to maximum life', '+# to maximum mana', '+# to maximum energy shield',
-            # Регенерация
+            # Регенерация (обычно префикс)
             'life regenerated per second', 'mana regenerated per second',
-            'energy shield recharge', 'regenerate', 'life regeneration',
-            # Защита
+            'energy shield recharge', 'regenerate life', 'regenerate mana',
+            # Защита (flat бонусы)
             'to armour', 'to evasion', '+# to armour', '+# to evasion',
             'to evasion rating', 'to maximum ward',
-            # Урон (добавленный)
-            'adds', 'to attack', 'to spell',
-            'added physical damage', 'added cold damage', 'added fire damage',
-            'added lightning damage', 'added chaos damage',
-            'to physical damage', 'to cold damage', 'to fire damage',
-            'to lightning damage', 'to chaos damage',
-            # Увеличенный урон
+            # Урон (добавленный) - ВСЕГДА префикс
+            'adds', 'added physical damage', 'added cold damage',
+            'added fire damage', 'added lightning damage', 'added chaos damage',
+            # Урон к атакам/спеллам
+            'to attacks', 'to spells', 'to attack damage', 'to spell damage',
+            # Увеличенный урон (локальный на оружии)
             'increased physical damage', 'increased spell damage',
-            'increased elemental damage', 'increased damage',
-            'increased attack damage', 'more damage',
+            'increased elemental damage',
             # Лич
-            'leech', 'leeched as',
+            'life leeched', 'mana leeched', 'leech', 'leeched as',
             # Миньоны
             'minions deal', 'minions have', 'minions gain',
-            # Качество и разное
-            'to quality', 'gain', 'grants level',
-            # Блок и уклонение
-            'chance to block', 'chance to dodge',
+            # Качество
+            'to quality',
+            # Уровень гемов (префикс)
+            'to level of', '+# to level',
+            # Блок (обычно префикс)
+            'chance to block',
             # Площадь действия
-            'increased area of effect', 'area of effect'
+            'increased area of effect', 'to area of effect'
         ]
         return any(kw in line_lower for kw in prefix_keywords)
 
     def _is_likely_suffix(self, line: str) -> bool:
         """
-        Эвристика для определения суффикса
-        Суффиксы обычно дают: сопротивления, атрибуты, криты, скорость атаки/каста, редкость
+        Улучшенная эвристика для определения суффикса
+        Суффиксы обычно дают: сопротивления, атрибуты, криты, скорости, % увеличения жизни/маны/ES
         """
         line_lower = line.lower()
         suffix_keywords = [
-            # Сопротивления
+            # % increased maximum Life/Mana/ES - СУФФИКС!
+            '% increased maximum life', '% increased maximum mana',
+            '% increased maximum energy shield',
+            'increased maximum life', 'increased maximum mana',
+            'increased maximum energy shield',
+            # Сопротивления - ВСЕГДА суффикс
             'resistance', 'to cold resistance', 'to fire resistance',
             'to lightning resistance', 'to chaos resistance',
             '+#% to cold resistance', '+#% to fire resistance',
             '+#% to lightning resistance', '+#% to chaos resistance',
             'to all elemental resistances', 'to elemental resistances',
-            # Атрибуты
+            'all resistances',
+            # Атрибуты - ВСЕГДА суффикс
             'to strength', 'to dexterity', 'to intelligence',
             '+# to strength', '+# to dexterity', '+# to intelligence',
             'to all attributes', '+# to all attributes',
-            # Криты
+            'strength and', 'dexterity and', 'intelligence and',
+            # Криты - обычно суффикс
             'increased critical strike chance', 'to critical strike chance',
             'to critical strike multiplier', 'increased global critical strike',
-            'critical strike', 'additional critical strike multiplier',
-            # Скорости
+            'critical strike chance', 'critical strike multiplier',
+            '+#% to critical strike multiplier',
+            # Скорости - ВСЕГДА суффикс
             'increased attack speed', 'increased cast speed',
             'to attack speed', 'to cast speed',
             'attack and cast speed', 'increased movement speed',
-            # Редкость и количество предметов
+            '% increased attack speed', '% increased cast speed',
+            # Редкость и количество предметов - суффикс
             'increased rarity', 'rarity of items found',
             'increased item quantity',
-            # Реквайрменты и разное
+            # Реквайрменты - суффикс
             'reduced attribute requirements', 'reduced requirements',
-            # Стихийный урон (чаще суффикс)
+            'no attribute requirements',
+            # Стихийный урон (на украшениях - суффикс)
             'increased cold damage', 'increased fire damage',
-            'increased lightning damage',
-            # Точность
+            'increased lightning damage', 'increased chaos damage',
+            '% increased fire damage', '% increased cold damage',
+            '% increased lightning damage',
+            # Точность - суффикс
             'to accuracy rating', 'increased accuracy',
-            # Длительность
+            '+# to accuracy', '% increased accuracy',
+            # Длительность - суффикс
             'increased skill effect duration', 'skill duration',
-            # Мана
-            'reduced mana cost', 'to total mana cost'
+            'increased duration',
+            # Мана - суффиксы
+            'reduced mana cost', 'to total mana cost',
+            '% reduced mana cost',
+            # Регенерация маны (суффикс на украшениях)
+            '% increased mana regeneration rate',
+            # Заряды
+            'chance to gain', 'maximum power charges',
+            'maximum frenzy charges', 'maximum endurance charges'
         ]
         return any(kw in line_lower for kw in suffix_keywords)
 
