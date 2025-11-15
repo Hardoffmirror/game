@@ -51,14 +51,28 @@ if other_slots:
     for name, item_id in other_slots:
         print(f"  {name:30s} -> itemId={item_id}")
 
-# Показываем все Items с их ID
+# Показываем все Items с их ID и характеристиками
 print('\n=== ВСЕ ПРЕДМЕТЫ (Items) ===')
 all_items = items.findall('.//Item')
 print(f'Всего предметов: {len(all_items)}\n')
 
 for item in all_items:
     item_id = item.get('id', 'NO_ID')
-    # Получаем первые несколько строк текста для идентификации
+    # Получаем текст предмета
     item_text = item.text if item.text else ''
-    first_line = item_text.split('\n')[0] if item_text else '(пусто)'
-    print(f"  Item id={item_id:3s} -> {first_line[:60]}")
+
+    print(f"\n{'='*70}")
+    print(f"Item ID: {item_id}")
+    print(f"{'='*70}")
+
+    if item_text:
+        # Показываем первые 10 строк или весь текст если он короче
+        lines = item_text.strip().split('\n')
+        for i, line in enumerate(lines[:15]):  # Первые 15 строк
+            print(f"  {line}")
+        if len(lines) > 15:
+            print(f"  ... (еще {len(lines) - 15} строк)")
+    else:
+        print("  (пусто)")
+
+print(f"\n{'='*70}")
