@@ -83,6 +83,9 @@ function displayResults(data) {
     // Информация о билде
     displayBuildInfo(data.build_info);
 
+    // Статистика предметов
+    displayItemStats(data);
+
     // Создаем карту камней по слотам
     const gemsBySlot = {};
     if (data.gems) {
@@ -119,6 +122,97 @@ function displayBuildInfo(buildInfo) {
             <div class="build-info-text">
                 <div class="build-class">${escapeHtml(buildInfo.className)}${buildInfo.ascendClassName && buildInfo.ascendClassName !== 'None' ? ` - ${escapeHtml(buildInfo.ascendClassName)}` : ''}</div>
                 <div class="build-level">Уровень ${escapeHtml(buildInfo.level)}</div>
+            </div>
+        </div>
+    `;
+}
+
+function displayItemStats(data) {
+    const statsDiv = document.getElementById('itemStats');
+
+    // Подсчитываем статистику
+    const stats = {
+        equipment: { total: 0, unique: 0, rare: 0, magic: 0, normal: 0 },
+        jewels: { total: 0, unique: 0, rare: 0, magic: 0, normal: 0 },
+        flasks: { total: 0, unique: 0, rare: 0, magic: 0, normal: 0 },
+        total: { total: 0, unique: 0, rare: 0, magic: 0, normal: 0 }
+    };
+
+    const countItems = (items, category) => {
+        if (!items) return;
+        items.forEach(item => {
+            stats[category].total++;
+            stats.total.total++;
+
+            const rarity = item.rarity ? item.rarity.toLowerCase() : '';
+            if (rarity.includes('unique')) {
+                stats[category].unique++;
+                stats.total.unique++;
+            } else if (rarity.includes('rare')) {
+                stats[category].rare++;
+                stats.total.rare++;
+            } else if (rarity.includes('magic')) {
+                stats[category].magic++;
+                stats.total.magic++;
+            } else {
+                stats[category].normal++;
+                stats.total.normal++;
+            }
+        });
+    };
+
+    countItems(data.equipment, 'equipment');
+    countItems(data.jewels, 'jewels');
+    countItems(data.flasks, 'flasks');
+
+    statsDiv.innerHTML = `
+        <div class="stats-compact">
+            <div class="stats-title">📊 Статистика</div>
+            <div class="stats-content">
+                <div class="stat-row stat-total">
+                    <span class="stat-label">Всего предметов:</span>
+                    <span class="stat-value">${stats.total.total}</span>
+                </div>
+                ${stats.total.unique > 0 ? `
+                <div class="stat-row">
+                    <span class="stat-label rarity-unique-text">Уникальных:</span>
+                    <span class="stat-value">${stats.total.unique}</span>
+                </div>
+                ` : ''}
+                ${stats.total.rare > 0 ? `
+                <div class="stat-row">
+                    <span class="stat-label rarity-rare-text">Редких:</span>
+                    <span class="stat-value">${stats.total.rare}</span>
+                </div>
+                ` : ''}
+                <div class="stats-divider"></div>
+                ${stats.equipment.total > 0 ? `
+                <div class="stat-group">
+                    <div class="stat-row">
+                        <span class="stat-label">⚔️ Экипировка:</span>
+                        <span class="stat-value">${stats.equipment.total}</span>
+                    </div>
+                    ${stats.equipment.unique > 0 ? `<div class="stat-sub">Уникальных: ${stats.equipment.unique}</div>` : ''}
+                </div>
+                ` : ''}
+                ${stats.jewels.total > 0 ? `
+                <div class="stat-group">
+                    <div class="stat-row">
+                        <span class="stat-label">💎 Самоцветы:</span>
+                        <span class="stat-value">${stats.jewels.total}</span>
+                    </div>
+                    ${stats.jewels.unique > 0 ? `<div class="stat-sub">Уникальных: ${stats.jewels.unique}</div>` : ''}
+                </div>
+                ` : ''}
+                ${stats.flasks.total > 0 ? `
+                <div class="stat-group">
+                    <div class="stat-row">
+                        <span class="stat-label">🧪 Фласки:</span>
+                        <span class="stat-value">${stats.flasks.total}</span>
+                    </div>
+                    ${stats.flasks.unique > 0 ? `<div class="stat-sub">Уникальных: ${stats.flasks.unique}</div>` : ''}
+                </div>
+                ` : ''}
             </div>
         </div>
     `;
