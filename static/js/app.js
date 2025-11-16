@@ -220,30 +220,22 @@ function displayBuildInfoAndStats(data) {
 function createCharacterStatsHtml(stats) {
     if (!stats) return '';
 
-    const parts = [];
-
     // Создаем строки статистики
     const statLines = [];
 
     // Life
-    if (stats.life || stats.life_percent) {
-        const lifeStr = stats.life ? `Life: ${stats.life}` : '';
-        const lifePercent = stats.life_percent ? `${stats.life_percent}%` : '';
-        statLines.push(lifeStr + (lifePercent ? (lifeStr ? ' | ' : '') + lifePercent : ''));
+    if (stats.life) {
+        statLines.push(`Life: ${stats.life}`);
     }
 
     // ES
-    if (stats.es || stats.es_percent) {
-        const esStr = stats.es ? `ES: ${stats.es}` : '';
-        const esPercent = stats.es_percent ? `${stats.es_percent}%` : '';
-        statLines.push(esStr + (esPercent ? (esStr ? ' | ' : '') + esPercent : ''));
+    if (stats.es) {
+        statLines.push(`ES: ${stats.es}`);
     }
 
     // Mana
-    if (stats.mana || stats.mana_percent) {
-        const manaStr = stats.mana ? `Mana: ${stats.mana}` : '';
-        const manaPercent = stats.mana_percent ? `${stats.mana_percent}%` : '';
-        statLines.push(manaStr + (manaPercent ? (manaStr ? ' | ' : '') + manaPercent : ''));
+    if (stats.mana) {
+        statLines.push(`Mana: ${stats.mana}`);
     }
 
     // eHP
@@ -256,11 +248,11 @@ function createCharacterStatsHtml(stats) {
         const resists = stats.resistances;
         if (resists.fire || resists.cold || resists.lightning || resists.chaos) {
             const resistParts = [];
-            if (resists.fire) resistParts.push(`🔥${resists.fire}%`);
-            if (resists.cold) resistParts.push(`❄️${resists.cold}%`);
-            if (resists.lightning) resistParts.push(`⚡${resists.lightning}%`);
-            if (resists.chaos) resistParts.push(`☠️${resists.chaos}%`);
-            statLines.push(`Resistances: ${resistParts.join('/')}`);
+            if (resists.fire) resistParts.push(`Fire ${resists.fire}%`);
+            if (resists.cold) resistParts.push(`Cold ${resists.cold}%`);
+            if (resists.lightning) resistParts.push(`Lightning ${resists.lightning}%`);
+            if (resists.chaos) resistParts.push(`Chaos ${resists.chaos}%`);
+            statLines.push(`Resistances: ${resistParts.join(' | ')}`);
         }
     }
 
@@ -279,11 +271,6 @@ function createCharacterStatsHtml(stats) {
         statLines.push(`Speed: ${stats.speed}`);
     }
 
-    // Hit Rate
-    if (stats.hit_rate) {
-        statLines.push(`Hit Rate: ${stats.hit_rate}`);
-    }
-
     // Hit Chance
     if (stats.hit_chance) {
         statLines.push(`Hit Chance: ${stats.hit_chance}%`);
@@ -291,7 +278,7 @@ function createCharacterStatsHtml(stats) {
 
     // Crit Chance
     if (stats.crit_chance) {
-        statLines.push(`Crit Chance: ${stats.crit_chance}%`);
+        statLines.push(`Crit: ${stats.crit_chance}%`);
     }
 
     // Crit Multi
@@ -299,7 +286,17 @@ function createCharacterStatsHtml(stats) {
         statLines.push(`Crit Multi: ${stats.crit_multi}%`);
     }
 
-    if (statLines.length === 0) return '';
+    if (statLines.length === 0) {
+        // Если нет статистики, показываем заметку
+        return `
+            <div class="character-stats-section">
+                <div class="stats-title">⚔️ Статистика персонажа</div>
+                <div class="char-stat-item" style="font-style: italic; color: #999;">
+                    Статистика не доступна в экспортированном билде. Откройте билд в Path of Building для просмотра.
+                </div>
+            </div>
+        `;
+    }
 
     return `
         <div class="character-stats-section">
@@ -642,7 +639,8 @@ function createItemCard(item, gemsBySlot = {}) {
     const itemIcon = getItemIcon(item);
     const itemIconHtml = itemIcon ? `
         <div class="item-icon-wrapper">
-            <img src="${itemIcon}" class="item-icon" alt="${escapeHtml(item.name)}" onerror="this.parentElement.style.display='none'">
+            <img src="${itemIcon}" class="item-icon" alt="${escapeHtml(item.name)}"
+                 onerror="handleImageError(this, '${escapeForAttribute(item.name)}', '${escapeForAttribute(item.base_type || '')}', '${escapeForAttribute(item.slot || '')}')">
         </div>
     ` : '';
 
@@ -958,4 +956,54 @@ function createSocketsDisplay(socketsString) {
     }).join('');
 
     return `<div class="item-sockets">${groupsHtml}</div>`;
+}
+
+function handleImageError(img, itemName, baseType, slot) {
+    // Если изображение не загрузилось, пробуем альтернативные варианты
+    const currentSrc = img.src;
+
+    // Если уже пробовали все варианты, скрываем иконку
+    if (img.dataset.attempt && parseInt(img.dataset.attempt) >= 2) {
+        img.parentElement.style.display = 'none';
+        return;
+    }
+
+    // Увеличиваем счетчик попыток
+    const attempt = parseInt(img.dataset.attempt || '0') + 1;
+    img.dataset.attempt = attempt;
+
+    // Пробуем другие варианты
+    if (attempt === 1 && baseType) {
+        // Пробуем base_type вместо имени
+        const simplifiedBase = baseType
+            .replace(/^The\s+/i, '')
+            .replace(/[''`´]/g, '')
+            .replace(/[^a-zA-Z0-9\s-]/g, '')
+            .replace(/\s+/g, '');
+
+        const category = getCategoryFromSlot(slot);
+        img.src = `https://web.poecdn.com/image/Art/2DItems/${category}/${simplifiedBase}.png`;
+    } else {
+        // Скрываем иконку после всех попыток
+        img.parentElement.style.display = 'none';
+    }
+}
+
+function getCategoryFromSlot(slot) {
+    const slotLower = slot ? slot.toLowerCase() : '';
+
+    if (slotLower.includes('flask')) return 'Flasks';
+    if (slotLower.includes('jewel')) return 'Jewels';
+    if (slotLower.includes('amulet')) return 'Amulets';
+    if (slotLower.includes('ring')) return 'Rings';
+    if (slotLower.includes('belt')) return 'Belts';
+    if (slotLower.includes('helmet') || slotLower.includes('helm')) return 'Armours/Helmets';
+    if (slotLower.includes('body') || slotLower.includes('chest')) return 'Armours/BodyArmours';
+    if (slotLower.includes('gloves')) return 'Armours/Gloves';
+    if (slotLower.includes('boots')) return 'Armours/Boots';
+    if (slotLower.includes('weapon')) return 'Weapons';
+    if (slotLower.includes('shield')) return 'Armours/Shields';
+    if (slotLower.includes('quiver')) return 'Quivers';
+
+    return 'Currency';
 }

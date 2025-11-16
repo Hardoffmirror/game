@@ -140,76 +140,101 @@ class PoBParser:
                 if value and value.lower() == 'true':
                     stats['config'].append(name)
 
-        # Ищем статистику в PlayerStat секции
-        # Path of Building хранит вычисленную статистику в элементе Build/PlayerStat
+        # Ищем статистику в различных местах
+        # Path of Building может хранить вычисленную статистику в разных секциях
+
+        # 1. Пробуем Build/PlayerStat
         if build_elem is not None:
             player_stat = build_elem.find('PlayerStat')
             if player_stat is not None:
-                # Извлекаем статистику из атрибутов
-                # Список возможных полей очень большой, берем основные
-                stat_map = {
-                    'Life': 'life',
-                    'Spec:Life': 'life',
-                    'TotalLife': 'life',
-                    'EnergyShield': 'es',
-                    'Spec:EnergyShield': 'es',
-                    'TotalEnergyShield': 'es',
-                    'Mana': 'mana',
-                    'Spec:Mana': 'mana',
-                    'TotalMana': 'mana',
-                    'TotalDPS': 'dps',
-                    'CombinedDPS': 'dps',
-                    'WithPoisonDPS': 'dps',
-                    'AverageDamage': 'dps',
-                    'Speed': 'speed',
-                    'HitSpeed': 'speed',
-                    'AttackRate': 'speed',
-                    'CastRate': 'speed',
-                    'HitChance': 'hit_chance',
-                    'CritChance': 'crit_chance',
-                    'CritMultiplier': 'crit_multi',
-                    'FireResist': 'fire_resist',
-                    'ColdResist': 'cold_resist',
-                    'LightningResist': 'lightning_resist',
-                    'ChaosResist': 'chaos_resist',
-                    'EvadeChance': 'evade_chance',
-                    'Evasion': 'evade_chance',
-                }
+                self._parse_player_stat(player_stat, stats)
 
-                # Перебираем все атрибуты PlayerStat
-                for attr_name, attr_value in player_stat.attrib.items():
-                    if attr_name in stat_map:
-                        field = stat_map[attr_name]
-                        try:
-                            # Пытаемся преобразовать в число
-                            value = float(attr_value.replace(',', ''))
+        # 2. Пробуем найти в корне документа
+        player_stat_root = self.root.find('.//PlayerStat')
+        if player_stat_root is not None:
+            self._parse_player_stat(player_stat_root, stats)
 
-                            if 'resist' in field:
-                                # Сопротивления
-                                resist_type = field.replace('_resist', '')
-                                stats['resistances'][resist_type] = int(value)
-                            elif field == 'dps' and stats['dps'] is None:
-                                stats['dps'] = int(value)
-                            elif field == 'life' and stats['life'] is None:
-                                stats['life'] = int(value)
-                            elif field == 'es' and stats['es'] is None:
-                                stats['es'] = int(value)
-                            elif field == 'mana' and stats['mana'] is None:
-                                stats['mana'] = int(value)
-                            elif field == 'speed' and stats['speed'] is None:
-                                stats['speed'] = round(value, 2)
-                            elif field == 'hit_chance' and stats['hit_chance'] is None:
-                                stats['hit_chance'] = int(value)
-                            elif field == 'crit_chance' and stats['crit_chance'] is None:
-                                stats['crit_chance'] = round(value, 1)
-                            elif field == 'crit_multi' and stats['crit_multi'] is None:
-                                stats['crit_multi'] = int(value)
-                            elif field == 'evade_chance' and stats['evade_chance'] is None:
-                                stats['evade_chance'] = int(value)
-                        except (ValueError, AttributeError):
-                            pass
+        # 3. Ищем в секции Tree (там может быть Spec с жизнью и т.д.)
+        tree_elem = self.root.find('Tree')
+        if tree_elem is not None:
+            spec = tree_elem.find('Spec')
+            if spec is not None:
+                # Парсим из атрибутов Spec
+                for attr in ['nodes']:
+                    # Это просто пример, реальные данные могут быть где-то ещё
+                    pass
 
         return stats
+
+    def _parse_player_stat(self, player_stat, stats):
+        """
+        Вспомогательная функция для парсинга PlayerStat элемента
+
+        Args:
+            player_stat: XML элемент PlayerStat
+            stats: Словарь для записи статистики
+        """
+        stat_map = {
+            'Life': 'life',
+            'Spec:Life': 'life',
+            'TotalLife': 'life',
+            'EnergyShield': 'es',
+            'Spec:EnergyShield': 'es',
+            'TotalEnergyShield': 'es',
+            'Mana': 'mana',
+            'Spec:Mana': 'mana',
+            'TotalMana': 'mana',
+            'TotalDPS': 'dps',
+            'CombinedDPS': 'dps',
+            'WithPoisonDPS': 'dps',
+            'AverageDamage': 'dps',
+            'Speed': 'speed',
+            'HitSpeed': 'speed',
+            'AttackRate': 'speed',
+            'CastRate': 'speed',
+            'HitChance': 'hit_chance',
+            'CritChance': 'crit_chance',
+            'CritMultiplier': 'crit_multi',
+            'FireResist': 'fire_resist',
+            'ColdResist': 'cold_resist',
+            'LightningResist': 'lightning_resist',
+            'ChaosResist': 'chaos_resist',
+            'EvadeChance': 'evade_chance',
+            'Evasion': 'evade_chance',
+        }
+
+        # Перебираем все атрибуты PlayerStat
+        for attr_name, attr_value in player_stat.attrib.items():
+            if attr_name in stat_map:
+                field = stat_map[attr_name]
+                try:
+                    # Пытаемся преобразовать в число
+                    value = float(attr_value.replace(',', ''))
+
+                    if 'resist' in field:
+                        # Сопротивления
+                        resist_type = field.replace('_resist', '')
+                        stats['resistances'][resist_type] = int(value)
+                    elif field == 'dps' and stats['dps'] is None:
+                        stats['dps'] = int(value)
+                    elif field == 'life' and stats['life'] is None:
+                        stats['life'] = int(value)
+                    elif field == 'es' and stats['es'] is None:
+                        stats['es'] = int(value)
+                    elif field == 'mana' and stats['mana'] is None:
+                        stats['mana'] = int(value)
+                    elif field == 'speed' and stats['speed'] is None:
+                        stats['speed'] = round(value, 2)
+                    elif field == 'hit_chance' and stats['hit_chance'] is None:
+                        stats['hit_chance'] = int(value)
+                    elif field == 'crit_chance' and stats['crit_chance'] is None:
+                        stats['crit_chance'] = round(value, 1)
+                    elif field == 'crit_multi' and stats['crit_multi'] is None:
+                        stats['crit_multi'] = int(value)
+                    elif field == 'evade_chance' and stats['evade_chance'] is None:
+                        stats['evade_chance'] = int(value)
+                except (ValueError, AttributeError):
+                    pass
 
     def get_items(self) -> Dict[str, List[Dict]]:
         """
@@ -537,6 +562,11 @@ class PoBParser:
                 i += 1
                 continue
 
+            # Пропускаем Unique ID (ПРОВЕРЯЕМ ПЕРВЫМИ!)
+            if line.startswith('Unique ID:') or 'Unique ID:' in line:
+                i += 1
+                continue
+
             # Свойства (Physical Damage, Elemental Damage, Critical Strike Chance, etc.)
             # Unique ID не добавляется в properties - это внутренний идентификатор
             if ':' in line and any(kw in line for kw in [
@@ -548,11 +578,6 @@ class PoBParser:
             ]) and not line.startswith('{'):
                 key, value = line.split(':', 1)
                 properties[key.strip()] = value.strip()
-                i += 1
-                continue
-
-            # Пропускаем Unique ID
-            if line.startswith('Unique ID:'):
                 i += 1
                 continue
 
