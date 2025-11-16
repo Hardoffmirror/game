@@ -32,27 +32,27 @@ body {
 }
 
 .container {
-    max-width: 1400px;
+    max-width: 1600px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 15px;
 }
 
 header {
     text-align: center;
-    padding: 40px 0;
+    padding: 20px 0;
     border-bottom: 2px solid var(--accent);
-    margin-bottom: 30px;
+    margin-bottom: 15px;
 }
 
 header h1 {
-    font-size: 2.5rem;
+    font-size: 2rem;
     color: var(--accent);
-    margin-bottom: 10px;
+    margin-bottom: 5px;
 }
 
 .subtitle {
     color: var(--text-secondary);
-    font-size: 1.1rem;
+    font-size: 0.95rem;
 }
 
 .input-section {
@@ -134,49 +134,81 @@ header h1 {
 }
 
 .section {
-    margin-bottom: 30px;
+    margin-bottom: 20px;
 }
 
 .section h2 {
     color: var(--accent);
     border-bottom: 2px solid var(--border);
-    padding-bottom: 8px;
-    margin-bottom: 12px;
-    font-size: 1.5rem;
+    padding-bottom: 5px;
+    margin-bottom: 8px;
+    font-size: 1.2rem;
 }
 
 .section-description {
     color: var(--text-secondary);
-    margin-bottom: 15px;
+    margin-bottom: 8px;
     font-style: italic;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
 }
 
 .build-info {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 100;
     background-color: var(--bg-card);
-    padding: 20px;
-    border-radius: 8px;
-    border-left: 4px solid var(--accent);
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 2px solid var(--accent);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    max-width: 250px;
 }
 
-.build-info p {
-    margin: 5px 0;
-    font-size: 1.1rem;
+.build-info-compact {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ascendancy-icon {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+.build-info-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.build-class {
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: var(--accent);
+    line-height: 1.2;
+}
+
+.build-level {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
 }
 
 .items-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 15px;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 10px;
 }
 
 .item-card {
     background-color: var(--bg-card);
-    border-radius: 8px;
-    padding: 12px;
-    border-left: 4px solid var(--border);
+    border-radius: 6px;
+    padding: 8px;
+    border-left: 3px solid var(--border);
     transition: transform 0.2s, box-shadow 0.2s;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
 }
 
 .item-card:hover {
@@ -202,17 +234,17 @@ header h1 {
 
 .item-slot {
     color: var(--text-secondary);
-    font-size: 0.75rem;
-    margin-bottom: 6px;
+    font-size: 0.7rem;
+    margin-bottom: 4px;
     font-weight: bold;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
 .item-name {
-    font-size: 1.1rem;
+    font-size: 0.95rem;
     font-weight: bold;
-    margin-bottom: 3px;
+    margin-bottom: 2px;
 }
 
 .item-name.rarity-normal { color: var(--rarity-normal); }
@@ -222,8 +254,8 @@ header h1 {
 
 .item-base-type {
     color: var(--text-secondary);
-    font-size: 0.85rem;
-    margin-bottom: 8px;
+    font-size: 0.8rem;
+    margin-bottom: 5px;
     cursor: pointer;
 }
 
@@ -233,7 +265,7 @@ header h1 {
 }
 
 .item-mods {
-    margin-top: 6px;
+    margin-top: 4px;
 }
 
 .mod-implicit {
@@ -271,16 +303,16 @@ header h1 {
 }
 
 .item-properties {
-    margin-top: 6px;
-    padding-top: 6px;
+    margin-top: 4px;
+    padding-top: 4px;
     border-top: 1px solid var(--border);
 }
 
 .property {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     margin: 1px 0;
     color: #d0d0d0;
-    line-height: 1.3;
+    line-height: 1.2;
 }
 
 .property-name {
@@ -288,22 +320,22 @@ header h1 {
 }
 
 .item-requirements {
-    margin-top: 6px;
-    padding-top: 6px;
+    margin-top: 4px;
+    padding-top: 4px;
     border-top: 1px solid var(--border);
-    font-size: 0.75rem;
+    font-size: 0.7rem;
 }
 
 .requirements-title {
     color: var(--text-secondary);
-    margin-bottom: 2px;
-    font-size: 0.75rem;
+    margin-bottom: 1px;
+    font-size: 0.7rem;
 }
 
 .requirement {
     color: var(--text-secondary);
     margin: 0;
-    line-height: 1.3;
+    line-height: 1.2;
 }
 
 .item-status {
@@ -475,27 +507,27 @@ header h1 {
 /* Сокеты */
 .item-sockets {
     display: flex;
-    gap: 6px;
-    margin: 6px 0;
+    gap: 4px;
+    margin: 4px 0;
     flex-wrap: wrap;
 }
 
 .socket-group {
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: 1.5px;
     background-color: rgba(0, 0, 0, 0.3);
-    padding: 3px 5px;
-    border-radius: 3px;
+    padding: 2px 4px;
+    border-radius: 2px;
 }
 
 .socket {
     display: inline-block;
-    width: 12px;
-    height: 12px;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
-    border: 2px solid rgba(0, 0, 0, 0.5);
-    box-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+    border: 1.5px solid rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
 }
 
 .socket-link {
@@ -506,24 +538,24 @@ header h1 {
 
 /* Компактные моды */
 .mod-section {
-    margin-bottom: 6px;
+    margin-bottom: 4px;
 }
 
 .mod-section-title {
     color: var(--accent);
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: bold;
-    margin-bottom: 2px;
+    margin-bottom: 1px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
 }
 
 .mod-line {
-    padding: 1px 0;
-    font-size: 0.85rem;
+    padding: 0.5px 0;
+    font-size: 0.8rem;
     border-left: 2px solid transparent;
-    padding-left: 6px;
-    line-height: 1.4;
+    padding-left: 5px;
+    line-height: 1.3;
 }
 
 /* Trade link */
@@ -548,24 +580,24 @@ header h1 {
 
 /* Item gems display */
 .item-gems {
-    margin: 8px 0;
-    padding: 8px;
+    margin: 5px 0;
+    padding: 5px;
     background-color: rgba(0, 0, 0, 0.2);
-    border-radius: 4px;
-    border-left: 3px solid var(--rarity-gem);
+    border-radius: 3px;
+    border-left: 2px solid var(--rarity-gem);
 }
 
 .item-gems .gem-item {
-    padding: 3px 6px;
-    margin: 3px 0;
-    border-radius: 3px;
+    padding: 2px 4px;
+    margin: 2px 0;
+    border-radius: 2px;
     background-color: rgba(0, 0, 0, 0.15);
     cursor: pointer;
     transition: background-color 0.2s;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
 }
 
 .item-gems .gem-item:hover {
@@ -582,23 +614,7 @@ header h1 {
     margin-left: 8px;
 }
 
-/* Flask images */
-.flask-image-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin: 8px 0;
-    padding: 8px;
-    background-color: rgba(0, 0, 0, 0.2);
-    border-radius: 4px;
-}
-
-.flask-image {
-    max-width: 80px;
-    max-height: 120px;
-    object-fit: contain;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
-}
+/* Flask images removed - performance improvement */
 
 /* Адаптивность */
 @media (max-width: 768px) {

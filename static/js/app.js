@@ -109,12 +109,51 @@ function displayResults(data) {
 
 function displayBuildInfo(buildInfo) {
     const buildInfoDiv = document.getElementById('buildInfo');
+
+    // Создаем URL для картинки подкласса
+    const ascendancyImage = getAscendancyImage(buildInfo.ascendClassName);
+
     buildInfoDiv.innerHTML = `
-        <h3>Информация о билде</h3>
-        <p><strong>Класс:</strong> ${buildInfo.className}</p>
-        <p><strong>Подкласс:</strong> ${buildInfo.ascendClassName}</p>
-        <p><strong>Уровень:</strong> ${buildInfo.level}</p>
+        <div class="build-info-compact">
+            ${ascendancyImage ? `<img src="${ascendancyImage}" class="ascendancy-icon" alt="${escapeHtml(buildInfo.ascendClassName)}" onerror="this.style.display='none'">` : ''}
+            <div class="build-info-text">
+                <div class="build-class">${escapeHtml(buildInfo.className)}${buildInfo.ascendClassName && buildInfo.ascendClassName !== 'None' ? ` - ${escapeHtml(buildInfo.ascendClassName)}` : ''}</div>
+                <div class="build-level">Уровень ${escapeHtml(buildInfo.level)}</div>
+            </div>
+        </div>
     `;
+}
+
+function getAscendancyImage(ascendClassName) {
+    if (!ascendClassName || ascendClassName === 'None') return null;
+
+    // Маппинг подклассов к их иконкам
+    const ascendancyMap = {
+        'Juggernaut': 'Juggernaut',
+        'Berserker': 'Berserker',
+        'Chieftain': 'Chieftain',
+        'Raider': 'Raider',
+        'Deadeye': 'Deadeye',
+        'Pathfinder': 'Pathfinder',
+        'Occultist': 'Occultist',
+        'Elementalist': 'Elementalist',
+        'Necromancer': 'Necromancer',
+        'Slayer': 'Slayer',
+        'Gladiator': 'Gladiator',
+        'Champion': 'Champion',
+        'Inquisitor': 'Inquisitor',
+        'Hierophant': 'Hierophant',
+        'Guardian': 'Guardian',
+        'Assassin': 'Assassin',
+        'Trickster': 'Trickster',
+        'Saboteur': 'Saboteur',
+        'Ascendant': 'Ascendant'
+    };
+
+    const imageName = ascendancyMap[ascendClassName];
+    if (!imageName) return null;
+
+    return `https://web.poecdn.com/image/Art/2DArt/UIImages/InGame/AscendancyClassesIcons/${imageName}.png`;
 }
 
 function displayItems(items, containerId, gemsBySlot = {}) {
@@ -292,16 +331,8 @@ function createItemCard(item, gemsBySlot = {}) {
         </div>`
         : '';
 
-    // Создаем HTML для изображения фласки
-    const flaskImageHtml = isFlask && item.base_type
-        ? `<div class="flask-image-container">
-            <img src="https://assets.pobb.in/1/${encodeURIComponent(item.base_type)}.webp"
-                 class="flask-image"
-                 alt="${escapeHtml(item.base_type)}"
-                 onerror="this.src='data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=='"
-                 loading="lazy">
-        </div>`
-        : '';
+    // Flask images removed - performance improvement
+    const flaskImageHtml = '';
 
     // Отображаем камни для этого предмета
     const gemsHtml = itemGems.length > 0 ? createGemsDisplay(itemGems) : '';
@@ -362,44 +393,58 @@ function createGemsDisplay(gemGroups) {
 function getGemColor(gemName) {
     const nameLower = gemName.toLowerCase();
 
-    // Определяем цвет камня по общим паттернам
-    // Красные (Strength) камни
-    const redGems = ['molten', 'fire', 'burning', 'flame', 'infernal', 'magma', 'volcanic', 'anger', 'determination', 'vitality', 'purity of fire', 'herald of ash', 'cleave', 'ground slam', 'heavy strike', 'shield charge', 'leap slam', 'earthquake', 'sunder', 'ancestral', 'warchief', 'protector', 'enduring cry', 'immortal call', 'rallying cry'];
-
-    // Зеленые (Dexterity) камни
-    const greenGems = ['lightning', 'spark', 'arc', 'storm', 'shock', 'wrath', 'grace', 'haste', 'purity of lightning', 'herald of thunder', 'herald of ice', 'split arrow', 'ice shot', 'tornado shot', 'rain of arrows', 'barrage', 'blast rain', 'caustic arrow', 'toxic rain', 'viper strike', 'pestilent strike', 'cobra lash', 'plague bearer'];
-
-    // Синие (Intelligence) камни
-    const blueGems = ['cold', 'ice', 'frost', 'freeze', 'glacial', 'arctic', 'clarity', 'discipline', 'purity of ice', 'herald of', 'freezing pulse', 'frostbolt', 'ice nova', 'vortex', 'cold snap', 'spark', 'ball lightning', 'arc', 'wave of conviction', 'orb of storms', 'discharge', 'firestorm', 'flameblast'];
-
-    // Support gems (обычно белые или оранжевые)
-    if (nameLower.includes('support')) {
-        return '#ffaa44';  // Оранжевый для support
+    // Support gems (обычно белые или с оттенком)
+    if (nameLower.includes('support') || nameLower.includes('awakened')) {
+        return '#aaddff';  // Светло-голубой для support
     }
 
-    // Проверяем красные
-    for (const keyword of redGems) {
-        if (nameLower.includes(keyword)) {
-            return '#ff4444';  // Красный
-        }
+    // Красные (Strength) камни - физический урон, огонь, ближний бой
+    const redKeywords = ['molten', 'fire', 'burning', 'flame', 'infernal', 'magma', 'volcanic',
+        'anger', 'determination', 'vitality', 'purity of fire', 'herald of ash',
+        'cleave', 'ground slam', 'heavy strike', 'shield charge', 'leap slam',
+        'earthquake', 'sunder', 'ancestral', 'warchief', 'protector',
+        'enduring cry', 'immortal call', 'rallying cry', 'blood rage',
+        'melee', 'slam', 'smite', 'dominating blow', 'consecrated path',
+        'cyclone', 'bladestorm', 'lacerate', 'reave', 'static strike',
+        'infused channelling'];
+
+    // Зеленые (Dexterity) камни - проджектайлы, яды, ловушки
+    const greenKeywords = ['split arrow', 'ice shot', 'tornado shot', 'rain of arrows',
+        'barrage', 'blast rain', 'caustic arrow', 'toxic rain', 'scourge arrow',
+        'viper strike', 'pestilent strike', 'cobra lash', 'plague bearer',
+        'grace', 'haste', 'precision', 'herald of agony', 'herald of ice',
+        'toxic', 'poison', 'venom', 'viper', 'plague', 'caustic',
+        'trap', 'mine', 'bear trap', 'lightning arrow', 'explosive arrow',
+        'puncture', 'frenzy', 'double strike', 'dual strike', 'flicker strike',
+        'whirling blades', 'blink arrow', 'mirror arrow', 'dash'];
+
+    // Синие (Intelligence) камни - холод, молния, заклинания, миньоны
+    const blueKeywords = ['cold', 'ice', 'frost', 'freeze', 'glacial', 'arctic', 'frostbite',
+        'clarity', 'discipline', 'wrath', 'zealotry', 'purity of ice', 'purity of lightning',
+        'herald of thunder', 'freezing pulse', 'frostbolt', 'ice nova', 'vortex',
+        'cold snap', 'spark', 'ball lightning', 'arc', 'storm', 'lightning', 'shock',
+        'wave of conviction', 'orb of storms', 'discharge', 'firestorm', 'flameblast',
+        'raise zombie', 'raise spectre', 'summon', 'animate', 'skeletons', 'carrion',
+        'stone golem', 'chaos golem', 'flame golem', 'ice golem', 'lightning golem',
+        'blade vortex', 'ethereal knives', 'bladefall', 'blade blast',
+        'power siphon', 'kinetic blast', 'storm brand', 'armageddon brand',
+        'voltaxic burst', 'hydrosphere'];
+
+    // Проверяем ключевые слова
+    for (const keyword of redKeywords) {
+        if (nameLower.includes(keyword)) return '#ff6666';  // Красный
     }
 
-    // Проверяем зеленые
-    for (const keyword of greenGems) {
-        if (nameLower.includes(keyword)) {
-            return '#44ff44';  // Зеленый
-        }
+    for (const keyword of greenKeywords) {
+        if (nameLower.includes(keyword)) return '#66ff66';  // Зеленый
     }
 
-    // Проверяем синие
-    for (const keyword of blueGems) {
-        if (nameLower.includes(keyword)) {
-            return '#4444ff';  // Синий
-        }
+    for (const keyword of blueKeywords) {
+        if (nameLower.includes(keyword)) return '#6666ff';  // Синий
     }
 
     // По умолчанию белый (для гибридных и неизвестных)
-    return '#ffffff';
+    return '#dddddd';
 }
 
 function createTradeUrl(item) {
@@ -408,6 +453,9 @@ function createTradeUrl(item) {
 
     if (!item.name) return null;
 
+    const isJewel = item.slot && (item.slot.toLowerCase().includes('jewel') ||
+                                  item.slot.toLowerCase().includes('abyssal'));
+
     // For unique items, search by name
     if (item.rarity && item.rarity.toLowerCase().includes('unique')) {
         const query = encodeURIComponent(JSON.stringify({
@@ -415,6 +463,60 @@ function createTradeUrl(item) {
                 "name": item.name
             }
         }));
+        return `https://www.pathofexile.com/trade/search/${currentLeague}?q=${query}`;
+    }
+
+    // For jewels (rare/magic), add stats to search
+    if (isJewel && item.rarity && (item.rarity.toLowerCase().includes('rare') ||
+                                    item.rarity.toLowerCase().includes('magic'))) {
+        const queryObj = {
+            "query": {
+                "type": item.base_type || item.name,
+                "filters": {},
+                "stats": [{"type": "and", "filters": []}]
+            }
+        };
+
+        // Собираем все моды для поиска (префиксы, суффиксы, explicits)
+        const allMods = [
+            ...(item.prefixes || []),
+            ...(item.suffixes || []),
+            ...(item.explicits || []),
+            ...(item.implicits || [])
+        ];
+
+        // Добавляем моды в поиск (максимум 6-8 модов для лучшего результата)
+        const modsToSearch = allMods.slice(0, 6);
+        modsToSearch.forEach(mod => {
+            const modText = typeof mod === 'object' ? mod.text : mod;
+            if (modText && modText.trim()) {
+                // Упрощаем текст мода для поиска - убираем числа и лишние символы
+                const simplifiedMod = modText.replace(/[\d.+#%-]+/g, '#').trim();
+                queryObj.query.stats[0].filters.push({
+                    "id": "",
+                    "value": {"min": null, "max": null},
+                    "disabled": false,
+                    "text": simplifiedMod
+                });
+            }
+        });
+
+        // Добавляем фильтр по item level если есть
+        if (item.properties && item.properties['Item Level']) {
+            const ilvl = parseInt(item.properties['Item Level']);
+            if (!isNaN(ilvl)) {
+                queryObj.query.filters.misc_filters = {
+                    "filters": {
+                        "ilvl": {
+                            "min": Math.max(1, ilvl - 3),
+                            "max": ilvl + 3
+                        }
+                    }
+                };
+            }
+        }
+
+        const query = encodeURIComponent(JSON.stringify(queryObj));
         return `https://www.pathofexile.com/trade/search/${currentLeague}?q=${query}`;
     }
 
