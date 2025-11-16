@@ -419,6 +419,7 @@ function getItemIcon(item) {
 
     const isUnique = item.rarity && item.rarity.toLowerCase().includes('unique');
     const isFlask = item.slot && item.slot.toLowerCase().includes('flask');
+    const isJewel = item.slot && item.slot.toLowerCase().includes('jewel');
 
     // Для обычных/magic/rare предметов используем base_type
     let itemName = item.name;
@@ -429,9 +430,10 @@ function getItemIcon(item) {
     // Создаем упрощенное имя для поиска изображения
     let simplifiedName = itemName
         .replace(/^The\s+/i, '')  // Убираем "The" в начале
-        .replace(/[''`´]/g, '')  // Убираем апострофы и подобные символы
-        .replace(/[^a-zA-Z0-9\s-]/g, '')  // Убираем все кроме букв, цифр, пробелов и дефисов
-        .replace(/\s+/g, '');  // Убираем пробелы
+        .replace(/[''`´']/g, '')  // Убираем все виды апострофов
+        .replace(/[^\w\s-]/g, '')  // Убираем все кроме букв, цифр, пробелов и дефисов
+        .replace(/\s+/g, '')  // Убираем все пробелы
+        .replace(/-+/g, '');  // Убираем дефисы
 
     // Получаем категорию предмета
     const category = getItemCategory(item);
@@ -963,7 +965,7 @@ function handleImageError(img, itemName, baseType, slot) {
     const currentSrc = img.src;
 
     // Если уже пробовали все варианты, скрываем иконку
-    if (img.dataset.attempt && parseInt(img.dataset.attempt) >= 2) {
+    if (img.dataset.attempt && parseInt(img.dataset.attempt) >= 3) {
         img.parentElement.style.display = 'none';
         return;
     }
@@ -972,17 +974,26 @@ function handleImageError(img, itemName, baseType, slot) {
     const attempt = parseInt(img.dataset.attempt || '0') + 1;
     img.dataset.attempt = attempt;
 
-    // Пробуем другие варианты
-    if (attempt === 1 && baseType) {
-        // Пробуем base_type вместо имени
+    const category = getCategoryFromSlot(slot);
+
+    // Пробуем разные варианты
+    if (attempt === 1 && baseType && baseType !== itemName) {
+        // Попытка 1: base_type
         const simplifiedBase = baseType
             .replace(/^The\s+/i, '')
-            .replace(/[''`´]/g, '')
-            .replace(/[^a-zA-Z0-9\s-]/g, '')
-            .replace(/\s+/g, '');
+            .replace(/[''`´']/g, '')
+            .replace(/[^\w\s-]/g, '')
+            .replace(/\s+/g, '')
+            .replace(/-+/g, '');
 
-        const category = getCategoryFromSlot(slot);
         img.src = `https://web.poecdn.com/image/Art/2DItems/${category}/${simplifiedBase}.png`;
+    } else if (attempt === 2) {
+        // Попытка 2: только латинские буквы и цифры, без спецсимволов
+        const cleanName = (baseType || itemName)
+            .replace(/^The\s+/i, '')
+            .replace(/[^a-zA-Z0-9]/g, '');
+
+        img.src = `https://web.poecdn.com/image/Art/2DItems/${category}/${cleanName}.png`;
     } else {
         // Скрываем иконку после всех попыток
         img.parentElement.style.display = 'none';

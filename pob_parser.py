@@ -80,6 +80,12 @@ class PoBParser:
             'league': build_elem.get('league', 'Unknown') if build_elem is not None else 'Unknown',
             'bandit': build_elem.get('bandit', 'None') if build_elem is not None else 'None',
         }
+
+        # Также извлекаем статистику напрямую из Build элемента (там может быть все!)
+        if build_elem is not None:
+            # Сохраним все атрибуты для debug
+            info['_all_build_attrs'] = dict(build_elem.attrib)
+
         return info
 
     def get_character_stats(self) -> Dict:
@@ -143,26 +149,20 @@ class PoBParser:
         # Ищем статистику в различных местах
         # Path of Building может хранить вычисленную статистику в разных секциях
 
-        # 1. Пробуем Build/PlayerStat
+        # 1. Сначала пробуем извлечь из самого Build элемента (там обычно всё!)
+        if build_elem is not None:
+            self._parse_player_stat(build_elem, stats)
+
+        # 2. Пробуем Build/PlayerStat
         if build_elem is not None:
             player_stat = build_elem.find('PlayerStat')
             if player_stat is not None:
                 self._parse_player_stat(player_stat, stats)
 
-        # 2. Пробуем найти в корне документа
+        # 3. Пробуем найти в корне документа
         player_stat_root = self.root.find('.//PlayerStat')
         if player_stat_root is not None:
             self._parse_player_stat(player_stat_root, stats)
-
-        # 3. Ищем в секции Tree (там может быть Spec с жизнью и т.д.)
-        tree_elem = self.root.find('Tree')
-        if tree_elem is not None:
-            spec = tree_elem.find('Spec')
-            if spec is not None:
-                # Парсим из атрибутов Spec
-                for attr in ['nodes']:
-                    # Это просто пример, реальные данные могут быть где-то ещё
-                    pass
 
         return stats
 
