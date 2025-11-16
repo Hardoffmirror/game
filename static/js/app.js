@@ -306,8 +306,11 @@ function createCharacterStatsHtml(stats) {
         return `
             <div class="character-stats-section">
                 <div class="stats-title">⚔️ Статистика персонажа</div>
-                <div class="char-stat-item" style="font-style: italic; color: #999;">
-                    Статистика не доступна в экспортированном билде. Откройте билд в Path of Building для просмотра.
+                <div class="char-stat-item" style="font-style: italic; color: #999; line-height: 1.6;">
+                    ℹ️ Path of Building не экспортирует вычисленную статистику (DPS, Life, сопротивления и т.д.) в код билда.<br>
+                    Эти данные рассчитываются в реальном времени при открытии билда в PoB.<br>
+                    <br>
+                    <strong>Для просмотра статистики:</strong> Откройте билд в Path of Building.
                 </div>
             </div>
         `;

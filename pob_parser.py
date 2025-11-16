@@ -149,49 +149,83 @@ class PoBParser:
                 if value and value.lower() == 'true':
                     stats['config'].append(name)
 
+        print("[DEBUG] ===== ПОИСК СТАТИСТИКИ ПЕРСОНАЖА =====")
+
         # Ищем статистику в различных местах
         # Path of Building может хранить вычисленную статистику в разных секциях
 
         # 1. Сначала пробуем извлечь из самого Build элемента (там обычно всё!)
         if build_elem is not None:
-            self._parse_player_stat(build_elem, stats)
+            print(f"[DEBUG] Проверяем Build элемент...")
+            self._parse_player_stat(build_elem, stats, "Build")
 
         # 2. Пробуем Build/PlayerStat
         if build_elem is not None:
             player_stat = build_elem.find('PlayerStat')
             if player_stat is not None:
-                self._parse_player_stat(player_stat, stats)
+                print(f"[DEBUG] Найден Build/PlayerStat")
+                self._parse_player_stat(player_stat, stats, "Build/PlayerStat")
 
         # 3. Пробуем найти в корне документа
         player_stat_root = self.root.find('.//PlayerStat')
         if player_stat_root is not None:
-            self._parse_player_stat(player_stat_root, stats)
+            print(f"[DEBUG] Найден .//PlayerStat в корне")
+            self._parse_player_stat(player_stat_root, stats, ".//PlayerStat")
 
         # 4. Проверяем секцию Calcs (там хранятся рассчитанные значения)
         calcs_section = self.root.find('.//Calcs')
         if calcs_section is not None:
-            self._parse_player_stat(calcs_section, stats)
+            print(f"[DEBUG] Найдена секция Calcs")
+            self._parse_player_stat(calcs_section, stats, "Calcs")
 
         # 5. Проверяем все дочерние элементы Build
         if build_elem is not None:
             for child in build_elem:
-                self._parse_player_stat(child, stats)
+                tag_name = child.tag
+                if tag_name not in ['PlayerStat']:  # Уже проверили выше
+                    self._parse_player_stat(child, stats, f"Build/{tag_name}")
+
+        # 6. НОВОЕ: Проверяем все элементы в документе, которые могут содержать статистику
+        for elem in self.root.iter():
+            # Ищем элементы с атрибутами, похожими на статистику
+            if elem.attrib and any(attr.lower() in [
+                'life', 'mana', 'es', 'energyshield', 'dps', 'totaldps',
+                'fireresist', 'coldresist', 'lightningresist', 'chaosresist'
+            ] for attr in elem.attrib.keys()):
+                tag_path = self._get_element_path(elem)
+                self._parse_player_stat(elem, stats, f"Found/{tag_path}")
 
         # Debug: выводим найденные статы
-        print(f"[DEBUG] Извлеченная статистика персонажа:")
-        print(f"  Life: {stats['life']}, ES: {stats['es']}, Mana: {stats['mana']}")
-        print(f"  DPS: {stats['dps']}, Speed: {stats['speed']}")
-        print(f"  Resistances: {stats['resistances']}")
+        print(f"[DEBUG] ===== РЕЗУЛЬТАТ ПАРСИНГА =====")
+        print(f"[DEBUG] Life: {stats['life']}, ES: {stats['es']}, Mana: {stats['mana']}")
+        print(f"[DEBUG] DPS: {stats['dps']}, Speed: {stats['speed']}")
+        print(f"[DEBUG] Resistances: {stats['resistances']}")
+        print(f"[DEBUG] ================================")
 
         return stats
 
-    def _parse_player_stat(self, player_stat, stats):
+    def _get_element_path(self, elem) -> str:
+        """Получает путь к элементу для отладки"""
+        path_parts = []
+        current = elem
+        while current is not None:
+            path_parts.insert(0, current.tag)
+            parent = None
+            for p in self.root.iter():
+                if elem in list(p):
+                    parent = p
+                    break
+            current = parent if parent != self.root else None
+        return '/'.join(path_parts[-3:])  # Последние 3 уровня
+
+    def _parse_player_stat(self, player_stat, stats, source_name="Unknown"):
         """
         Вспомогательная функция для парсинга PlayerStat элемента
 
         Args:
             player_stat: XML элемент PlayerStat
             stats: Словарь для записи статистики
+            source_name: Название источника для отладки
         """
         stat_map = {
             # Life
@@ -295,7 +329,10 @@ class PoBParser:
 
         # Debug: выводим что нашли в этом элементе
         if matched_attrs:
-            print(f"[DEBUG] Найдены атрибуты в {player_stat.tag}: {matched_attrs}")
+            print(f"[DEBUG] [{source_name}] Найдены атрибуты в {player_stat.tag}: {matched_attrs[:5]}")  # Первые 5
+        elif len(player_stat.attrib) > 0:
+            # Если есть атрибуты но ни один не совпал
+            print(f"[DEBUG] [{source_name}] Элемент {player_stat.tag} имеет {len(player_stat.attrib)} атрибутов, но ни один не совпал. Примеры: {list(player_stat.attrib.keys())[:5]}")
 
     def get_items(self) -> Dict[str, List[Dict]]:
         """
