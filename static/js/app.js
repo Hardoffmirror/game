@@ -733,9 +733,6 @@ function createItemCard(item, gemsBySlot = {}) {
     // Отображаем камни для этого предмета
     const gemsHtml = itemGems.length > 0 ? createGemsDisplay(itemGems) : '';
 
-    // Создаем HTML для статистики предмета
-    const itemStatsHtml = createItemStatsDisplay(item.stats);
-
     return `
         <div class="item-card ${rarityClass}">
             <div class="item-card-top">
@@ -765,7 +762,6 @@ function createItemCard(item, gemsBySlot = {}) {
                 ${fracturedModsHtml}
                 ${explicitsHtml}
             </div>
-            ${itemStatsHtml}
             ${statusHtml.join('')}
         </div>
     `;
@@ -796,7 +792,7 @@ function getGemColor(gemName) {
 
     const nameLower = gemName.toLowerCase();
 
-    // Support gems (обычно белые или с оттенком)
+    // Support gems (обычно голубые или белые)
     if (nameLower.includes('support') || nameLower.includes('awakened')) {
         return '#8CF';  // Голубой для support
     }
@@ -810,7 +806,9 @@ function getGemColor(gemName) {
         'melee', 'slam', 'smite', 'dominating blow', 'consecrated path',
         'cyclone', 'bladestorm', 'lacerate', 'reave', 'static strike',
         'infused channelling', 'perforate', 'boneshatter', 'general', 'warlord',
-        'strength', 'shockwave', 'tectonic', 'war', 'seismic', 'earthshatter'];
+        'strength', 'shockwave', 'tectonic', 'war', 'seismic', 'earthshatter',
+        'righteous fire', 'scorching ray', 'absolution', 'shield crush',
+        'rage', 'berserk', 'intimidating cry', 'generals cry', 'corrupting cry'];
 
     // Зеленые (Dexterity) камни - проджектайлы, яды, ловушки
     const greenKeywords = ['split arrow', 'ice shot', 'tornado shot', 'rain of arrows',
@@ -822,7 +820,9 @@ function getGemColor(gemName) {
         'puncture', 'frenzy', 'double strike', 'dual strike', 'flicker strike',
         'whirling blades', 'blink arrow', 'mirror arrow', 'dash', 'spectral throw',
         'ballista', 'artillery', 'dexterity', 'evasion', 'ricochet', 'chain',
-        'shrapnel', 'galvanic', 'elemental hit'];
+        'shrapnel', 'galvanic', 'elemental hit', 'spectral helix', 'tornado',
+        'blood and sand', 'flesh and stone', 'withering step', 'steelskin',
+        'ensnaring arrow', 'siege ballista', 'artillery ballista'];
 
     // Синие (Intelligence) камни - холод, молния, заклинания, миньоны
     const blueKeywords = ['cold', 'ice', 'frost', 'freeze', 'glacial', 'arctic', 'frostbite',
@@ -835,7 +835,10 @@ function getGemColor(gemName) {
         'blade vortex', 'ethereal knives', 'bladefall', 'blade blast',
         'power siphon', 'kinetic blast', 'storm brand', 'armageddon brand',
         'voltaxic burst', 'hydrosphere', 'orb', 'nova', 'pulse', 'intelligence',
-        'mana', 'energy shield', 'spell', 'cast', 'brand', 'totem', 'sigil'];
+        'mana', 'energy shield', 'spell', 'cast', 'brand', 'totem', 'sigil',
+        'divine ire', 'purifying flame', 'winter orb', 'creeping frost',
+        'forbidden rite', 'reap', 'exsanguinate', 'corrupting fever',
+        'tempest shield', 'frost shield', 'arcane cloak', 'sigil of power'];
 
     // Проверяем ключевые слова для красных
     for (const keyword of redKeywords) {
@@ -1172,25 +1175,4 @@ function getCategoryFromSlot(slot) {
     if (slotLower.includes('weapon')) return 'Weapons';
 
     return 'Currency';
-}
-
-function createItemStatsDisplay(stats) {
-    // Если статистики нет или она пустая, не отображаем спойлер
-    if (!stats || Object.keys(stats).length === 0) {
-        return '';
-    }
-
-    // Формируем список статов
-    const statsList = Object.entries(stats).map(([statName, statValue]) => {
-        return `<div class="item-stat-line">${escapeHtml(statValue)}</div>`;
-    }).join('');
-
-    return `
-        <details class="item-stats-spoiler">
-            <summary class="item-stats-summary">📊 Характеристики предмета</summary>
-            <div class="item-stats-content">
-                ${statsList}
-            </div>
-        </details>
-    `;
 }
