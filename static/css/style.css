@@ -1,14 +1,15 @@
 /* PoE Build Converter - Стили */
 
 :root {
-    --bg-dark: #1a1a1a;
-    --bg-card: #2a2a2a;
-    --bg-input: #333;
-    --text-primary: #e0e0e0;
+    --bg-dark: #0f0f0f;
+    --bg-card: #1a1a1a;
+    --bg-input: #222;
+    --text-primary: #f0f0f0;
     --text-secondary: #999;
-    --accent: #ff6b35;
-    --accent-hover: #ff8555;
-    --border: #444;
+    --accent: #d35400;
+    --accent-hover: #e67e22;
+    --border: #333;
+    --shadow: rgba(0, 0, 0, 0.5);
 
     /* Цвета редкости предметов */
     --rarity-normal: #c8c8c8;
@@ -25,29 +26,37 @@
 }
 
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: var(--bg-dark);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
+    background-attachment: fixed;
     color: var(--text-primary);
-    line-height: 1.6;
+    line-height: 1.5;
 }
 
 .container {
-    max-width: 1600px;
+    max-width: 1800px;
     margin: 0 auto;
-    padding: 15px;
+    padding: 20px;
 }
 
 header {
     text-align: center;
-    padding: 20px 0;
-    border-bottom: 2px solid var(--accent);
-    margin-bottom: 15px;
+    padding: 25px 0;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    background-size: 100% 2px;
+    background-position: bottom;
+    background-repeat: no-repeat;
+    margin-bottom: 20px;
 }
 
 header h1 {
-    font-size: 2rem;
-    color: var(--accent);
-    margin-bottom: 5px;
+    font-size: 2.2rem;
+    background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+    font-weight: 700;
 }
 
 .subtitle {
@@ -62,42 +71,67 @@ header h1 {
 #buildCode {
     width: 100%;
     height: 150px;
-    background-color: var(--bg-input);
+    background: linear-gradient(145deg, var(--bg-input), #1a1a1a);
     color: var(--text-primary);
     border: 2px solid var(--border);
-    border-radius: 8px;
+    border-radius: 10px;
     padding: 15px;
-    font-family: 'Courier New', monospace;
+    font-family: 'Fira Code', 'Courier New', monospace;
     font-size: 0.9rem;
     resize: vertical;
+    transition: all 0.3s;
+    box-shadow: inset 0 2px 4px var(--shadow);
 }
 
 #buildCode:focus {
     outline: none;
     border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(211, 84, 0, 0.1), inset 0 2px 4px var(--shadow);
 }
 
 .btn {
     display: block;
     width: 100%;
-    padding: 15px;
+    padding: 16px;
     margin-top: 15px;
-    background-color: var(--accent);
+    background: linear-gradient(135deg, var(--accent), var(--accent-hover));
     color: white;
     border: none;
-    border-radius: 8px;
+    border-radius: 10px;
     font-size: 1.1rem;
-    font-weight: bold;
+    font-weight: 600;
     cursor: pointer;
-    transition: background-color 0.3s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 12px rgba(211, 84, 0, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
 }
 
 .btn:hover {
-    background-color: var(--accent-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(211, 84, 0, 0.4);
+}
+
+.btn:hover::before {
+    width: 300px;
+    height: 300px;
 }
 
 .btn:active {
-    transform: translateY(1px);
+    transform: translateY(0);
 }
 
 .error {
@@ -138,11 +172,15 @@ header h1 {
 }
 
 .section h2 {
-    color: var(--accent);
+    background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
     border-bottom: 2px solid var(--border);
-    padding-bottom: 5px;
-    margin-bottom: 8px;
-    font-size: 1.2rem;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+    font-size: 1.3rem;
+    font-weight: 600;
 }
 
 .section-description {
@@ -157,12 +195,13 @@ header h1 {
     top: 20px;
     right: 20px;
     z-index: 100;
-    background-color: var(--bg-card);
-    padding: 8px 12px;
-    border-radius: 6px;
+    background: linear-gradient(145deg, var(--bg-card), #151515);
+    padding: 10px 14px;
+    border-radius: 8px;
     border: 2px solid var(--accent);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    max-width: 250px;
+    box-shadow: 0 6px 20px var(--shadow);
+    max-width: 260px;
+    backdrop-filter: blur(10px);
 }
 
 .build-info-compact {
@@ -198,22 +237,36 @@ header h1 {
 
 .items-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 12px;
 }
 
 .item-card {
-    background-color: var(--bg-card);
-    border-radius: 6px;
-    padding: 8px;
-    border-left: 3px solid var(--border);
-    transition: transform 0.2s, box-shadow 0.2s;
+    background: linear-gradient(145deg, var(--bg-card), #151515);
+    border-radius: 8px;
+    padding: 10px;
+    border-left: 4px solid var(--border);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     font-size: 0.85rem;
+    box-shadow: 0 2px 8px var(--shadow);
+    position: relative;
+    overflow: hidden;
+}
+
+.item-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, transparent 0%, rgba(255, 255, 255, 0.02) 100%);
+    pointer-events: none;
 }
 
 .item-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px var(--shadow);
 }
 
 .item-card.rarity-normal {
@@ -235,10 +288,10 @@ header h1 {
 .item-slot {
     color: var(--text-secondary);
     font-size: 0.7rem;
-    margin-bottom: 4px;
     font-weight: bold;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    flex: 1;
 }
 
 .item-name {
@@ -614,7 +667,32 @@ header h1 {
     margin-left: 8px;
 }
 
-/* Flask images removed - performance improvement */
+/* Item icons */
+.item-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+}
+
+.item-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 6px;
+    padding: 4px;
+    flex-shrink: 0;
+}
+
+.item-icon {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
 
 /* Адаптивность */
 @media (max-width: 768px) {

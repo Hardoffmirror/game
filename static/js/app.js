@@ -167,6 +167,46 @@ function displayItems(items, containerId, gemsBySlot = {}) {
     container.innerHTML = items.map(item => createItemCard(item, gemsBySlot)).join('');
 }
 
+function getItemIcon(item) {
+    // Базовый путь к картинкам на PoE CDN
+    const basePath = 'https://web.poecdn.com/gen/image/';
+
+    // Для уникальных предметов можно попробовать получить изображение
+    if (!item.name) return null;
+
+    // Создаем упрощенное имя для поиска изображения
+    const simplifiedName = item.name
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, '')
+        .replace(/\s+/g, '-');
+
+    // Пытаемся создать URL для изображения (это приблизительная логика)
+    return `https://web.poecdn.com/image/Art/2DItems/${getItemCategory(item)}/${simplifiedName}.png`;
+}
+
+function getItemCategory(item) {
+    const slot = item.slot ? item.slot.toLowerCase() : '';
+    const basetype = item.base_type ? item.base_type.toLowerCase() : '';
+
+    if (slot.includes('flask')) return 'Flasks';
+    if (slot.includes('amulet')) return 'Amulets';
+    if (slot.includes('ring')) return 'Rings';
+    if (slot.includes('belt')) return 'Belts';
+    if (slot.includes('helmet') || slot.includes('helm')) return 'Armours/Helmets';
+    if (slot.includes('body') || slot.includes('chest')) return 'Armours/BodyArmours';
+    if (slot.includes('gloves')) return 'Armours/Gloves';
+    if (slot.includes('boots')) return 'Armours/Boots';
+    if (slot.includes('weapon') || basetype.includes('sword') || basetype.includes('axe') ||
+        basetype.includes('mace') || basetype.includes('bow') || basetype.includes('wand') ||
+        basetype.includes('dagger') || basetype.includes('claw') || basetype.includes('sceptre')) {
+        return 'Weapons';
+    }
+    if (slot.includes('shield')) return 'Armours/Shields';
+    if (slot.includes('quiver')) return 'Quivers';
+
+    return 'Currency';
+}
+
 function createItemCard(item, gemsBySlot = {}) {
     const rarityClass = getRarityClass(item.rarity);
     const isFlask = item.slot && item.slot.toLowerCase().includes('flask');
@@ -331,16 +371,23 @@ function createItemCard(item, gemsBySlot = {}) {
         </div>`
         : '';
 
-    // Flask images removed - performance improvement
-    const flaskImageHtml = '';
+    // Иконка предмета
+    const itemIcon = getItemIcon(item);
+    const itemIconHtml = itemIcon ? `
+        <div class="item-icon-wrapper">
+            <img src="${itemIcon}" class="item-icon" alt="${escapeHtml(item.name)}" onerror="this.parentElement.style.display='none'">
+        </div>
+    ` : '';
 
     // Отображаем камни для этого предмета
     const gemsHtml = itemGems.length > 0 ? createGemsDisplay(itemGems) : '';
 
     return `
         <div class="item-card ${rarityClass}">
-            <div class="item-slot">${escapeHtml(item.slot)}</div>
-            ${flaskImageHtml}
+            <div class="item-card-top">
+                <div class="item-slot">${escapeHtml(item.slot)}</div>
+                ${itemIconHtml}
+            </div>
             <div class="item-header">
                 <div class="item-name-wrapper">
                     <div class="item-name ${rarityClass} copyable" onclick="copyToClipboard('${escapeForAttribute(item.name)}')" title="Нажмите, чтобы скопировать">${escapeHtml(item.name)}</div>
@@ -395,7 +442,7 @@ function getGemColor(gemName) {
 
     // Support gems (обычно белые или с оттенком)
     if (nameLower.includes('support') || nameLower.includes('awakened')) {
-        return '#aaddff';  // Светло-голубой для support
+        return '#88ddff';  // Яркий голубой для support
     }
 
     // Красные (Strength) камни - физический урон, огонь, ближний бой
@@ -432,19 +479,19 @@ function getGemColor(gemName) {
 
     // Проверяем ключевые слова
     for (const keyword of redKeywords) {
-        if (nameLower.includes(keyword)) return '#ff6666';  // Красный
+        if (nameLower.includes(keyword)) return '#ff4444';  // Яркий красный
     }
 
     for (const keyword of greenKeywords) {
-        if (nameLower.includes(keyword)) return '#66ff66';  // Зеленый
+        if (nameLower.includes(keyword)) return '#44ff44';  // Яркий зеленый
     }
 
     for (const keyword of blueKeywords) {
-        if (nameLower.includes(keyword)) return '#6666ff';  // Синий
+        if (nameLower.includes(keyword)) return '#4488ff';  // Яркий синий
     }
 
     // По умолчанию белый (для гибридных и неизвестных)
-    return '#dddddd';
+    return '#e8e8e8';
 }
 
 function createTradeUrl(item) {
