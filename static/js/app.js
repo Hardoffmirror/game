@@ -130,6 +130,7 @@ function displayItems(items, containerId, gemsBySlot = {}) {
 
 function createItemCard(item, gemsBySlot = {}) {
     const rarityClass = getRarityClass(item.rarity);
+    const isFlask = item.slot && item.slot.toLowerCase().includes('flask');
 
     // Получаем камни для этого слота
     const itemGems = gemsBySlot[item.slot] || [];
@@ -291,12 +292,24 @@ function createItemCard(item, gemsBySlot = {}) {
         </div>`
         : '';
 
+    // Создаем HTML для изображения фласки
+    const flaskImageHtml = isFlask && item.base_type
+        ? `<div class="flask-image-container">
+            <img src="https://assets.pobb.in/1/${encodeURIComponent(item.base_type)}.webp"
+                 class="flask-image"
+                 alt="${escapeHtml(item.base_type)}"
+                 onerror="this.src='data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=='"
+                 loading="lazy">
+        </div>`
+        : '';
+
     // Отображаем камни для этого предмета
     const gemsHtml = itemGems.length > 0 ? createGemsDisplay(itemGems) : '';
 
     return `
         <div class="item-card ${rarityClass}">
             <div class="item-slot">${escapeHtml(item.slot)}</div>
+            ${flaskImageHtml}
             <div class="item-header">
                 <div class="item-name-wrapper">
                     <div class="item-name ${rarityClass} copyable" onclick="copyToClipboard('${escapeForAttribute(item.name)}')" title="Нажмите, чтобы скопировать">${escapeHtml(item.name)}</div>

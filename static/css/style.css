@@ -582,6 +582,24 @@ header h1 {
     margin-left: 8px;
 }
 
+/* Flask images */
+.flask-image-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 8px 0;
+    padding: 8px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+
+.flask-image {
+    max-width: 80px;
+    max-height: 120px;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+
 /* Адаптивность */
 @media (max-width: 768px) {
     .items-grid,
