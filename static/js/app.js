@@ -130,11 +130,36 @@ function createItemCard(item) {
         return escapeHtml(mod);
     };
 
-    // Свойства предмета (урон, защита, и т.д.)
-    const propertiesHtml = item.properties && Object.keys(item.properties).length > 0
+    // Извлечь уровень и сокеты из properties
+    let itemLevel = '';
+    let socketsHtml = '';
+    const filteredProperties = {};
+
+    if (item.properties) {
+        Object.entries(item.properties).forEach(([key, value]) => {
+            // Пропускаем Unique ID
+            if (key === 'Unique ID') {
+                return;
+            }
+            // Извлекаем уровень предмета
+            if (key === 'Item Level') {
+                itemLevel = value;
+                return;
+            }
+            // Обрабатываем сокеты отдельно
+            if (key === 'Sockets') {
+                socketsHtml = createSocketsDisplay(value);
+                return;
+            }
+            filteredProperties[key] = value;
+        });
+    }
+
+    // Свойства предмета (урон, защита, и т.д.) - без Unique ID, Item Level и Sockets
+    const propertiesHtml = Object.keys(filteredProperties).length > 0
         ? `
             <div class="item-properties">
-                ${Object.entries(item.properties).map(([key, value]) =>
+                ${Object.entries(filteredProperties).map(([key, value]) =>
                     `<div class="property"><span class="property-name">${escapeHtml(key)}:</span> ${escapeHtml(value)}</div>`
                 ).join('')}
             </div>
@@ -176,7 +201,7 @@ function createItemCard(item) {
         ? `
             <div class="mod-section">
                 <div class="mod-section-title">Префиксы:</div>
-                ${item.prefixes.map(mod => `<div class="mod-line mod-prefix">${renderMod(mod)}</div>`).join('')}
+                ${item.prefixes.map(mod => `<div class="mod-line mod-prefix copyable" onclick="copyToClipboard('${escapeForAttribute(renderMod(mod))}')">${renderMod(mod)}</div>`).join('')}
             </div>
         `
         : '';
@@ -186,7 +211,7 @@ function createItemCard(item) {
         ? `
             <div class="mod-section">
                 <div class="mod-section-title">Суффиксы:</div>
-                ${item.suffixes.map(mod => `<div class="mod-line mod-suffix">${renderMod(mod)}</div>`).join('')}
+                ${item.suffixes.map(mod => `<div class="mod-line mod-suffix copyable" onclick="copyToClipboard('${escapeForAttribute(renderMod(mod))}')">${renderMod(mod)}</div>`).join('')}
             </div>
         `
         : '';
@@ -233,8 +258,12 @@ function createItemCard(item) {
     return `
         <div class="item-card ${rarityClass}">
             <div class="item-slot">${escapeHtml(item.slot)}</div>
-            <div class="item-name ${rarityClass}">${escapeHtml(item.name)}</div>
+            <div class="item-header">
+                <div class="item-name ${rarityClass} copyable" onclick="copyToClipboard('${escapeForAttribute(item.name)}')" title="Нажмите, чтобы скопировать">${escapeHtml(item.name)}</div>
+                ${itemLevel ? `<div class="item-level">iLvl ${escapeHtml(itemLevel)}</div>` : ''}
+            </div>
             ${item.base_type && item.base_type !== item.name ? `<div class="item-base-type">${escapeHtml(item.base_type)}</div>` : ''}
+            ${socketsHtml}
             ${propertiesHtml}
             ${requirementsHtml}
             <div class="item-mods">
@@ -264,10 +293,18 @@ function displayGems(gems, containerId) {
 
 function createGemGroup(gemGroup) {
     const gemsHtml = gemGroup.gems.map(gem => {
-        const details = `Level ${gem.level} | Quality ${gem.quality}%`;
+        const details = `Lvl ${gem.level} | Q ${gem.quality}%`;
+
+        // Определяем тип камня для цвета (по первой букве nameSpec или по поддержке)
+        let gemType = '';
+        const nameLower = gem.nameSpec.toLowerCase();
+        if (nameLower.includes('support')) {
+            gemType = 'support';
+        }
+
         return `
-            <li class="gem-item">
-                <div>${escapeHtml(gem.nameSpec)}</div>
+            <li class="gem-item ${gemType}" onclick="copyToClipboard('${escapeForAttribute(gem.nameSpec)}')" title="Нажмите, чтобы скопировать">
+                <div class="gem-name">${escapeHtml(gem.nameSpec)}</div>
                 <div class="gem-details">${details}</div>
             </li>
         `;
@@ -276,7 +313,6 @@ function createGemGroup(gemGroup) {
     return `
         <div class="gem-group">
             <div class="gem-group-label">${escapeHtml(gemGroup.label)}</div>
-            <div class="gem-slot">${escapeHtml(gemGroup.slot || 'No slot')}</div>
             <ul class="gem-list">
                 ${gemsHtml}
             </ul>
@@ -296,4 +332,70 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+function escapeForAttribute(text) {
+    return String(text).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function copyToClipboard(text) {
+    // Создаем временный элемент для копирования
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+
+    try {
+        document.execCommand('copy');
+        // Показываем уведомление
+        showCopyNotification();
+    } catch (err) {
+        console.error('Ошибка копирования:', err);
+    }
+
+    document.body.removeChild(textarea);
+}
+
+function showCopyNotification() {
+    // Создаем уведомление
+    const notification = document.createElement('div');
+    notification.className = 'copy-notification';
+    notification.textContent = 'Скопировано!';
+    document.body.appendChild(notification);
+
+    // Показываем с анимацией
+    setTimeout(() => notification.classList.add('show'), 10);
+
+    // Удаляем через 2 секунды
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => document.body.removeChild(notification), 300);
+    }, 2000);
+}
+
+function createSocketsDisplay(socketsString) {
+    // Формат: "R-G-B G-G-G" или "R-R-G"
+    // R=Red, G=Green, B=Blue, W=White, A=Abyss
+    const socketColors = {
+        'R': '#ff4444',  // Red
+        'G': '#44ff44',  // Green
+        'B': '#4444ff',  // Blue
+        'W': '#ffffff',  // White
+        'A': '#00ff88'   // Abyss (зеленоватый)
+    };
+
+    const groups = socketsString.split(' ');
+    const groupsHtml = groups.map(group => {
+        const sockets = group.split('-');
+        const socketsHtml = sockets.map(socket => {
+            const color = socketColors[socket] || '#888888';
+            return `<span class="socket" style="background-color: ${color};" title="${socket}"></span>`;
+        }).join('<span class="socket-link"></span>');
+
+        return `<div class="socket-group">${socketsHtml}</div>`;
+    }).join('');
+
+    return `<div class="item-sockets">${groupsHtml}</div>`;
 }
