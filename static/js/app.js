@@ -109,6 +109,7 @@ function displayResults(data) {
 
 function displayBuildInfoAndStats(data) {
     const buildInfo = data.build_info;
+    const characterStats = data.character_stats || {};
     const unifiedDiv = document.getElementById('buildInfoStats');
 
     // Создаем URL для картинки подкласса
@@ -152,6 +153,12 @@ function displayBuildInfoAndStats(data) {
     countItems(data.jewels, 'jewels');
     countItems(data.flasks, 'flasks');
 
+    // Создаем HTML для статистики персонажа
+    const charStatsHtml = createCharacterStatsHtml(characterStats);
+
+    // Создаем HTML для конфига, бандита и пантеона
+    const configHtml = createConfigHtml(buildInfo, characterStats);
+
     // Объединенная верстка
     unifiedDiv.innerHTML = `
         <div class="build-info-stats-combined">
@@ -162,9 +169,11 @@ function displayBuildInfoAndStats(data) {
                 </div>
                 <div class="build-details">
                     <div class="build-class-name">${escapeHtml(buildInfo.className)}${buildInfo.ascendClassName && buildInfo.ascendClassName !== 'None' ? ` - ${escapeHtml(buildInfo.ascendClassName)}` : ''}</div>
-                    <div class="build-level-info">Уровень ${escapeHtml(buildInfo.level)}</div>
+                    <div class="build-level-info">Уровень ${escapeHtml(buildInfo.level)}${buildInfo.league && buildInfo.league !== 'Unknown' ? ` | Лига: ${escapeHtml(buildInfo.league)}` : ''}</div>
                 </div>
             </div>
+            ${charStatsHtml}
+            ${configHtml}
             <div class="stats-section">
                 <div class="stats-title">📊 Статистика предметов</div>
                 <div class="stats-grid">
@@ -208,6 +217,145 @@ function displayBuildInfoAndStats(data) {
     `;
 }
 
+function createCharacterStatsHtml(stats) {
+    if (!stats) return '';
+
+    const parts = [];
+
+    // Создаем строки статистики
+    const statLines = [];
+
+    // Life
+    if (stats.life || stats.life_percent) {
+        const lifeStr = stats.life ? `Life: ${stats.life}` : '';
+        const lifePercent = stats.life_percent ? `${stats.life_percent}%` : '';
+        statLines.push(lifeStr + (lifePercent ? (lifeStr ? ' | ' : '') + lifePercent : ''));
+    }
+
+    // ES
+    if (stats.es || stats.es_percent) {
+        const esStr = stats.es ? `ES: ${stats.es}` : '';
+        const esPercent = stats.es_percent ? `${stats.es_percent}%` : '';
+        statLines.push(esStr + (esPercent ? (esStr ? ' | ' : '') + esPercent : ''));
+    }
+
+    // Mana
+    if (stats.mana || stats.mana_percent) {
+        const manaStr = stats.mana ? `Mana: ${stats.mana}` : '';
+        const manaPercent = stats.mana_percent ? `${stats.mana_percent}%` : '';
+        statLines.push(manaStr + (manaPercent ? (manaStr ? ' | ' : '') + manaPercent : ''));
+    }
+
+    // eHP
+    if (stats.ehp) {
+        statLines.push(`eHP: ${formatNumber(stats.ehp)}`);
+    }
+
+    // Resistances
+    if (stats.resistances) {
+        const resists = stats.resistances;
+        if (resists.fire || resists.cold || resists.lightning || resists.chaos) {
+            const resistParts = [];
+            if (resists.fire) resistParts.push(`🔥${resists.fire}%`);
+            if (resists.cold) resistParts.push(`❄️${resists.cold}%`);
+            if (resists.lightning) resistParts.push(`⚡${resists.lightning}%`);
+            if (resists.chaos) resistParts.push(`☠️${resists.chaos}%`);
+            statLines.push(`Resistances: ${resistParts.join('/')}`);
+        }
+    }
+
+    // Evade
+    if (stats.evade_chance) {
+        statLines.push(`Evade: ${stats.evade_chance}%`);
+    }
+
+    // DPS
+    if (stats.dps) {
+        statLines.push(`DPS: ${formatNumber(stats.dps)}`);
+    }
+
+    // Speed
+    if (stats.speed) {
+        statLines.push(`Speed: ${stats.speed}`);
+    }
+
+    // Hit Rate
+    if (stats.hit_rate) {
+        statLines.push(`Hit Rate: ${stats.hit_rate}`);
+    }
+
+    // Hit Chance
+    if (stats.hit_chance) {
+        statLines.push(`Hit Chance: ${stats.hit_chance}%`);
+    }
+
+    // Crit Chance
+    if (stats.crit_chance) {
+        statLines.push(`Crit Chance: ${stats.crit_chance}%`);
+    }
+
+    // Crit Multi
+    if (stats.crit_multi) {
+        statLines.push(`Crit Multi: ${stats.crit_multi}%`);
+    }
+
+    if (statLines.length === 0) return '';
+
+    return `
+        <div class="character-stats-section">
+            <div class="stats-title">⚔️ Статистика персонажа</div>
+            <div class="character-stats-grid">
+                ${statLines.map(line => `<div class="char-stat-item">${escapeHtml(line)}</div>`).join('')}
+            </div>
+        </div>
+    `;
+}
+
+function createConfigHtml(buildInfo, characterStats) {
+    const parts = [];
+
+    // Config
+    if (characterStats.config && characterStats.config.length > 0) {
+        parts.push(`Config: ${characterStats.config.join(', ')}`);
+    }
+
+    // Bandit
+    if (buildInfo.bandit && buildInfo.bandit !== 'None') {
+        parts.push(`Bandit: ${buildInfo.bandit}`);
+    }
+
+    // Pantheon
+    if (characterStats.pantheon) {
+        const pantheonParts = [];
+        if (characterStats.pantheon.major) {
+            pantheonParts.push(characterStats.pantheon.major);
+        }
+        if (characterStats.pantheon.minor) {
+            pantheonParts.push(characterStats.pantheon.minor);
+        }
+        if (pantheonParts.length > 0) {
+            parts.push(`Pantheon: ${pantheonParts.join(', ')}`);
+        }
+    }
+
+    if (parts.length === 0) return '';
+
+    return `
+        <div class="config-section">
+            <div class="config-text">${parts.map(p => escapeHtml(p)).join(' | ')}</div>
+        </div>
+    `;
+}
+
+function formatNumber(num) {
+    if (num >= 1000000) {
+        return (num / 1000000).toFixed(2) + 'M';
+    } else if (num >= 1000) {
+        return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toString();
+}
+
 function getClassImage(className) {
     if (!className) return null;
 
@@ -225,7 +373,8 @@ function getClassImage(className) {
     const imageName = classMap[className];
     if (!imageName) return null;
 
-    return `https://web.poecdn.com/image/Art/2DArt/UIImages/InGame/CharacterPanel/${imageName}.png`;
+    // Используем стандартный URL от PoE Wiki
+    return `https://web.poecdn.com/protected/image/layout/header-icons-classes/${imageName.toLowerCase()}-selected.png`;
 }
 
 function getAscendancyImage(ascendClassName) {

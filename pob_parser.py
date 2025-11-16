@@ -77,8 +77,74 @@ class PoBParser:
             'level': build_elem.get('level', 'Unknown') if build_elem is not None else 'Unknown',
             'className': build_elem.get('className', 'Unknown') if build_elem is not None else 'Unknown',
             'ascendClassName': build_elem.get('ascendClassName', 'None') if build_elem is not None else 'None',
+            'league': build_elem.get('league', 'Unknown') if build_elem is not None else 'Unknown',
+            'bandit': build_elem.get('bandit', 'None') if build_elem is not None else 'None',
         }
         return info
+
+    def get_character_stats(self) -> Dict:
+        """
+        Извлекает статистику персонажа из билда
+
+        Returns:
+            Словарь со статистикой персонажа (Life, ES, Mana, DPS и т.д.)
+        """
+        if self.root is None:
+            raise ValueError("Билд не был распарсен.")
+
+        stats = {
+            'life': None,
+            'life_percent': None,
+            'es': None,
+            'es_percent': None,
+            'mana': None,
+            'mana_percent': None,
+            'ehp': None,
+            'resistances': {
+                'fire': None,
+                'cold': None,
+                'lightning': None,
+                'chaos': None
+            },
+            'evade_chance': None,
+            'dps': None,
+            'speed': None,
+            'hit_rate': None,
+            'hit_chance': None,
+            'crit_chance': None,
+            'crit_multi': None,
+            'config': [],
+            'pantheon': {
+                'major': None,
+                'minor': None
+            }
+        }
+
+        # Ищем Build элемент для конфига и пантеона
+        build_elem = self.root.find('Build')
+        if build_elem is not None:
+            # Пантеон
+            pantheon_major = build_elem.get('pantheonMajorGod')
+            pantheon_minor = build_elem.get('pantheonMinorGod')
+            if pantheon_major:
+                stats['pantheon']['major'] = pantheon_major
+            if pantheon_minor:
+                stats['pantheon']['minor'] = pantheon_minor
+
+        # Ищем Config элемент
+        config_section = self.root.find('Config')
+        if config_section is not None:
+            for input_elem in config_section.findall('Input'):
+                name = input_elem.get('name', '')
+                value = input_elem.get('boolean') or input_elem.get('number') or input_elem.get('string')
+                if value and value.lower() == 'true':
+                    stats['config'].append(name)
+
+        # Ищем статистику в PlayerStat (если есть)
+        # Обычно PoB хранит вычисленную статистику в Build элементе или в отдельных секциях
+        # но формат может различаться. Попробуем извлечь что можем.
+
+        return stats
 
     def get_items(self) -> Dict[str, List[Dict]]:
         """
@@ -133,11 +199,24 @@ class PoBParser:
 
         # Обрабатываем каждый слот
         processed_item_ids = set()
+        flask_counter = 0  # Счетчик для фласок без item_id
+
         for slot, parent_item_set in all_slots:
             slot_name = slot.get('name', 'Unknown')
             item_id = slot.get('itemId')
 
-            if not item_id or item_id in processed_item_ids:
+            # Для фласок разрешаем обработку даже без item_id
+            is_flask_slot = 'flask' in slot_name.lower()
+
+            if not item_id:
+                if is_flask_slot:
+                    # Генерируем временный ID для фласки
+                    item_id = f"flask_{flask_counter}"
+                    flask_counter += 1
+                else:
+                    continue
+
+            if item_id in processed_item_ids:
                 continue
 
             processed_item_ids.add(item_id)
@@ -145,20 +224,28 @@ class PoBParser:
             # Находим предмет по ID
             item_element = None
 
-            # Сначала ищем в том же ItemSet, откуда взят слот
-            if parent_item_set is not None:
-                item_element = parent_item_set.find(f"./Item[@id='{item_id}']")
+            # Для временных ID фласок, проверяем текст прямо в слоте
+            if item_id.startswith("flask_") and slot.text:
+                # Создаем временный Item элемент из текста слота
+                import xml.etree.ElementTree as ET_temp
+                item_element = ET_temp.Element('Item')
+                item_element.set('id', item_id)
+                item_element.text = slot.text
+            else:
+                # Сначала ищем в том же ItemSet, откуда взят слот
+                if parent_item_set is not None:
+                    item_element = parent_item_set.find(f"./Item[@id='{item_id}']")
 
-            # Если не найден, ищем в основной секции Items
-            if item_element is None:
-                item_element = items_section.find(f"./Item[@id='{item_id}']")
+                # Если не найден, ищем в основной секции Items
+                if item_element is None:
+                    item_element = items_section.find(f"./Item[@id='{item_id}']")
 
-            # Если всё ещё не найден, ищем во всех активных ItemSet
-            if item_element is None:
-                for item_set in active_item_sets:
-                    item_element = item_set.find(f"./Item[@id='{item_id}']")
-                    if item_element is not None:
-                        break
+                # Если всё ещё не найден, ищем во всех активных ItemSet
+                if item_element is None:
+                    for item_set in active_item_sets:
+                        item_element = item_set.find(f"./Item[@id='{item_id}']")
+                        if item_element is not None:
+                            break
 
             # Если всё равно не найден, пропускаем
             if item_element is None:
@@ -710,6 +797,7 @@ class PoBParser:
 
         return {
             'build_info': self.get_build_info(),
+            'character_stats': self.get_character_stats(),
             'equipment': items['equipment'],
             'jewels': items['jewels'],
             'flasks': items['flasks'],

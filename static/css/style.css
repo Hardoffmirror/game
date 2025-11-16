@@ -768,6 +768,50 @@ header h1 {
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
 }
 
+/* Character stats section */
+.character-stats-section {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 2px solid var(--border);
+}
+
+.character-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.char-stat-item {
+    padding: 6px 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 6px;
+    border-left: 3px solid var(--accent);
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    transition: all 0.2s;
+}
+
+.char-stat-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateX(2px);
+}
+
+/* Config section */
+.config-section {
+    margin-top: 10px;
+    padding: 10px;
+    background: rgba(211, 84, 0, 0.1);
+    border-radius: 6px;
+    border: 1px solid rgba(211, 84, 0, 0.3);
+}
+
+.config-text {
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    line-height: 1.5;
+}
+
 /* Адаптивность */
 @media (max-width: 768px) {
     .items-grid,
@@ -786,6 +830,10 @@ header h1 {
     }
 
     .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .character-stats-grid {
         grid-template-columns: 1fr;
     }
 
