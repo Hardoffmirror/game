@@ -8,6 +8,7 @@ import re
 import zlib
 import xml.etree.ElementTree as ET
 from typing import Dict, List, Optional
+from calc import ModDB, ModParser, CalcDefence, CalcOffence
 
 
 class PoBParser:
@@ -1013,3 +1014,112 @@ class PoBParser:
             'flasks': items['flasks'],
             'gems': gems
         }
+
+    def calculate_character_stats(self) -> Dict:
+        """
+        РАССЧИТЫВАЕТ статистику персонажа на основе предметов и модификаторов
+        Использует систему расчетов по образцу PathOfBuilding
+
+        Returns:
+            Словарь с рассчитанной статистикой персонажа
+        """
+        if self.root is None:
+            raise ValueError("Билд не был распарсен.")
+
+        # 1. Получаем информацию о билде
+        build_info = self.get_build_info()
+        level = int(build_info.get('level', 1))
+
+        # 2. Создаём ModDB для хранения всех модификаторов
+        mod_db = ModDB()
+
+        # 3. Собираем все предметы
+        items = self.get_items()
+        all_items = []
+        all_items.extend(items['equipment'])
+        all_items.extend(items['jewels'])
+        # Фласки обычно не дают постоянные статы, но можем добавить если нужно
+        # all_items.extend(items['flasks'])
+
+        print(f"\n[CALC] Начинаем расчёт для уровня {level}")
+        print(f"[CALC] Найдено предметов: {len(all_items)}")
+
+        # 4. Парсим модификаторы из всех предметов
+        for item in all_items:
+            ModParser.parse_item_mods(item, mod_db, source="Item")
+
+        # 5. TODO: Добавить парсинг пассивного дерева
+        # Пока что только предметы
+
+        # Debug: показываем что нашли
+        print(f"[CALC] Модификаторов в базе: {len(mod_db.get_all_mods())}")
+        if len(mod_db.get_all_mods()) > 0:
+            mod_db.debug_print(limit=5)
+
+        # 6. Рассчитываем защиту
+        defence_stats = CalcDefence.calculate_all(mod_db, level)
+
+        # 7. Рассчитываем атаку
+        offence_stats = CalcOffence.calculate_all(mod_db)
+
+        # 8. Формируем результат
+        result = {
+            # Life
+            'life': defence_stats['life']['total'],
+            'life_details': defence_stats['life'],
+
+            # Energy Shield
+            'energy_shield': defence_stats['energy_shield']['total'],
+            'es_details': defence_stats['energy_shield'],
+
+            # Mana
+            'mana': defence_stats['mana']['total'],
+            'mana_details': defence_stats['mana'],
+
+            # Resistances
+            'resistances': {
+                'fire': defence_stats['resistances']['fire']['total'],
+                'cold': defence_stats['resistances']['cold']['total'],
+                'lightning': defence_stats['resistances']['lightning']['total'],
+                'chaos': defence_stats['resistances']['chaos']['total'],
+            },
+            'resistances_details': defence_stats['resistances'],
+
+            # Armour & Evasion
+            'armour': defence_stats['armour']['total'],
+            'armour_details': defence_stats['armour'],
+            'evasion': defence_stats['evasion']['total'],
+            'evasion_details': defence_stats['evasion'],
+
+            # Offence
+            'crit_chance': offence_stats['crit_chance']['total'],
+            'crit_chance_details': offence_stats['crit_chance'],
+            'crit_multiplier': offence_stats['crit_multiplier']['total'],
+            'crit_multiplier_details': offence_stats['crit_multiplier'],
+
+            'attack_speed': offence_stats['attack_speed']['total'],
+            'attack_speed_details': offence_stats['attack_speed'],
+            'cast_speed': offence_stats['cast_speed']['total'],
+            'cast_speed_details': offence_stats['cast_speed'],
+
+            'damage_modifiers': offence_stats['damage_modifiers'],
+            'dps_estimate': offence_stats['dps'],
+
+            # Metadata
+            'calculated': True,
+            'calculation_note': 'Calculated using ModDB system (based on PathOfBuilding architecture)'
+        }
+
+        print(f"\n[CALC] ===== РЕЗУЛЬТАТЫ РАСЧЁТА =====")
+        print(f"[CALC] Life: {result['life']}")
+        print(f"[CALC] ES: {result['energy_shield']}")
+        print(f"[CALC] Mana: {result['mana']}")
+        print(f"[CALC] Fire Resist: {result['resistances']['fire']}%")
+        print(f"[CALC] Cold Resist: {result['resistances']['cold']}%")
+        print(f"[CALC] Lightning Resist: {result['resistances']['lightning']}%")
+        print(f"[CALC] Chaos Resist: {result['resistances']['chaos']}%")
+        print(f"[CALC] Crit Chance: {result['crit_chance']}%")
+        print(f"[CALC] Crit Multi: {result['crit_multiplier']}%")
+        print(f"[CALC] ===================================")
+
+        return result
