@@ -258,12 +258,13 @@ class PoBParser:
             item_type = item_data.get('item_type', '').lower()
             slot_lower = slot_name.lower()
             name_lower = item_data.get('name', '').lower()
+            base_type_lower = item_data.get('base_type', '').lower()
 
             # Проверяем jewels (самоцветы) - по типу, слоту или названию
-            if ('jewel' in item_type or 'jewel' in slot_lower or 'jewel' in name_lower):
+            if ('jewel' in item_type or 'jewel' in slot_lower or 'jewel' in name_lower or 'jewel' in base_type_lower):
                 jewels.append(item_data)
-            # Проверяем flasks (флаконы) - по типу, слоту или названию
-            elif ('flask' in item_type or 'flask' in slot_lower or 'flask' in name_lower):
+            # Проверяем flasks (флаконы) - по типу, слоту, названию или base_type
+            elif ('flask' in item_type or 'flask' in slot_lower or 'flask' in name_lower or 'flask' in base_type_lower):
                 flasks.append(item_data)
             else:
                 # Это обычная экипировка
@@ -333,6 +334,24 @@ class PoBParser:
         """
         item_text_lower = item_text.lower()
 
+        # Flask - проверяем сначала фласки по различным вариантам
+        flask_keywords = ['life flask', 'mana flask', 'hybrid flask', 'utility flask',
+                          'divine flask', 'eternal flask', 'sanctified flask',
+                          'ruby flask', 'sapphire flask', 'topaz flask', 'granite flask',
+                          'quicksilver flask', 'amethyst flask', 'quartz flask',
+                          'jade flask', 'basalt flask', 'stibnite flask', 'sulphur flask',
+                          'silver flask', 'aquamarine flask', 'bismuth flask',
+                          'dying sun', 'bottled faith', 'taste of hate', 'wise oak',
+                          "lion's roar", 'atziri', 'vessel of vinktar']
+
+        for keyword in flask_keywords:
+            if keyword in item_text_lower:
+                return 'Flask'
+
+        # Общая проверка на flask
+        if 'flask' in item_text_lower:
+            return 'Flask'
+
         # Различные типы jewels
         if 'cluster jewel' in item_text_lower:
             return 'Passive Jewel (Cluster)'
@@ -344,10 +363,6 @@ class PoBParser:
             return 'Abyssal Socket'
         elif 'jewel' in item_text_lower:
             return 'Passive Jewel'
-
-        # Flask
-        if 'flask' in item_text_lower:
-            return 'Flask'
 
         # Если не можем определить - возвращаем общее название
         return 'Unknown Slot'

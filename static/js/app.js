@@ -359,22 +359,23 @@ function formatNumber(num) {
 function getClassImage(className) {
     if (!className) return null;
 
-    // Маппинг классов к их иконкам
+    // Маппинг классов к их иконкам (используем стандартизированные имена)
     const classMap = {
-        'Marauder': 'Marauder',
-        'Ranger': 'Ranger',
-        'Witch': 'Witch',
-        'Duelist': 'Duelist',
-        'Templar': 'Templar',
-        'Shadow': 'Shadow',
-        'Scion': 'Scion'
+        'Marauder': 'str',
+        'Ranger': 'dex',
+        'Witch': 'int',
+        'Duelist': 'str-dex',
+        'Templar': 'str-int',
+        'Shadow': 'dex-int',
+        'Scion': 'all'
     };
 
-    const imageName = classMap[className];
-    if (!imageName) return null;
+    const imageKey = classMap[className];
+    if (!imageKey) return null;
 
-    // Используем стандартный URL от PoE Wiki
-    return `https://web.poecdn.com/protected/image/layout/header-icons-classes/${imageName.toLowerCase()}-selected.png`;
+    // Используем Path of Building Community Fork иконки или fallback на простые иконки
+    // Альтернатива: используем простую генерацию через имя класса
+    return `https://web.poecdn.com/image/Art/2DArt/UIImages/InGame/AscendancyClassesIcons/${className}.png`;
 }
 
 function getAscendancyImage(ascendClassName) {
@@ -421,17 +422,20 @@ function displayItems(items, containerId, gemsBySlot = {}) {
 }
 
 function getItemIcon(item) {
-    // Отображаем иконки для уникальных предметов и всех фласок
+    // Отображаем иконки для ВСЕХ предметов
     if (!item.name) return null;
 
     const isUnique = item.rarity && item.rarity.toLowerCase().includes('unique');
     const isFlask = item.slot && item.slot.toLowerCase().includes('flask');
 
-    // Показываем иконки для уникальных предметов и всех фласок
-    if (!isUnique && !isFlask) return null;
+    // Для обычных/magic/rare предметов используем base_type
+    let itemName = item.name;
+    if (!isUnique && item.base_type) {
+        itemName = item.base_type;
+    }
 
     // Создаем упрощенное имя для поиска изображения
-    let simplifiedName = item.name
+    let simplifiedName = itemName
         .replace(/^The\s+/i, '')  // Убираем "The" в начале
         .replace(/[''`´]/g, '')  // Убираем апострофы и подобные символы
         .replace(/[^a-zA-Z0-9\s-]/g, '')  // Убираем все кроме букв, цифр, пробелов и дефисов
@@ -643,7 +647,7 @@ function createItemCard(item, gemsBySlot = {}) {
     return `
         <div class="item-card ${rarityClass}">
             <div class="item-card-top">
-                <div class="item-slot">${escapeHtml(item.slot)}</div>
+                <div class="item-slot">${escapeHtml(item.slot)}${itemLevel ? ` | iLvl ${escapeHtml(itemLevel)}` : ''}</div>
                 ${itemIconHtml}
             </div>
             <div class="item-header">
@@ -652,7 +656,6 @@ function createItemCard(item, gemsBySlot = {}) {
                     ${tradeLink}
                 </div>
                 <div class="item-header-right">
-                    ${itemLevel ? `<div class="item-level">iLvl ${escapeHtml(itemLevel)}</div>` : ''}
                     ${headerPropsHtml}
                 </div>
             </div>
@@ -696,6 +699,8 @@ function createGemsDisplay(gemGroups) {
 }
 
 function getGemColor(gemName) {
+    if (!gemName) return '#e8e8e8';
+
     const nameLower = gemName.toLowerCase();
 
     // Support gems (обычно белые или с оттенком)
@@ -711,7 +716,7 @@ function getGemColor(gemName) {
         'enduring cry', 'immortal call', 'rallying cry', 'blood rage',
         'melee', 'slam', 'smite', 'dominating blow', 'consecrated path',
         'cyclone', 'bladestorm', 'lacerate', 'reave', 'static strike',
-        'infused channelling'];
+        'infused channelling', 'perforate', 'boneshatter', 'general'];
 
     // Зеленые (Dexterity) камни - проджектайлы, яды, ловушки
     const greenKeywords = ['split arrow', 'ice shot', 'tornado shot', 'rain of arrows',
@@ -721,7 +726,8 @@ function getGemColor(gemName) {
         'toxic', 'poison', 'venom', 'viper', 'plague', 'caustic',
         'trap', 'mine', 'bear trap', 'lightning arrow', 'explosive arrow',
         'puncture', 'frenzy', 'double strike', 'dual strike', 'flicker strike',
-        'whirling blades', 'blink arrow', 'mirror arrow', 'dash'];
+        'whirling blades', 'blink arrow', 'mirror arrow', 'dash', 'spectral throw',
+        'ballista', 'artillery'];
 
     // Синие (Intelligence) камни - холод, молния, заклинания, миньоны
     const blueKeywords = ['cold', 'ice', 'frost', 'freeze', 'glacial', 'arctic', 'frostbite',
@@ -733,17 +739,19 @@ function getGemColor(gemName) {
         'stone golem', 'chaos golem', 'flame golem', 'ice golem', 'lightning golem',
         'blade vortex', 'ethereal knives', 'bladefall', 'blade blast',
         'power siphon', 'kinetic blast', 'storm brand', 'armageddon brand',
-        'voltaxic burst', 'hydrosphere'];
+        'voltaxic burst', 'hydrosphere', 'orb', 'nova', 'pulse'];
 
-    // Проверяем ключевые слова
+    // Проверяем ключевые слова для красных
     for (const keyword of redKeywords) {
         if (nameLower.includes(keyword)) return '#ff4444';  // Яркий красный
     }
 
+    // Проверяем ключевые слова для зеленых
     for (const keyword of greenKeywords) {
         if (nameLower.includes(keyword)) return '#44ff44';  // Яркий зеленый
     }
 
+    // Проверяем ключевые слова для синих
     for (const keyword of blueKeywords) {
         if (nameLower.includes(keyword)) return '#4488ff';  // Яркий синий
     }
