@@ -359,23 +359,18 @@ function formatNumber(num) {
 function getClassImage(className) {
     if (!className) return null;
 
-    // Маппинг классов к их иконкам (используем стандартизированные имена)
-    const classMap = {
-        'Marauder': 'str',
-        'Ranger': 'dex',
-        'Witch': 'int',
-        'Duelist': 'str-dex',
-        'Templar': 'str-int',
-        'Shadow': 'dex-int',
-        'Scion': 'all'
+    // Используем PoE Wiki для иконок классов - более надежный источник
+    const classImageMap = {
+        'Marauder': 'https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvR2Vtcy9TdXBwb3J0L1N0cmVuZ3RoIiwicyI6MC41fV0/9f2c4a28c0/Strength.png',
+        'Ranger': 'https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvR2Vtcy9TdXBwb3J0L0RleHRlcml0eSIsInMiOjAuNX1d/a6f2b03ad1/Dexterity.png',
+        'Witch': 'https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvR2Vtcy9TdXBwb3J0L0ludGVsbGlnZW5jZSIsInMiOjAuNX1d/5b53c20e8e/Intelligence.png',
+        'Duelist': 'https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvR2Vtcy9TdXBwb3J0L1N0cmVuZ3RoRGV4dGVyaXR5IiwicyI6MC41fV0/8b0e3a5994/StrengthDexterity.png',
+        'Templar': 'https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvR2Vtcy9TdXBwb3J0L1N0cmVuZ3RoSW50ZWxsaWdlbmNlIiwicyI6MC41fV0/f0dc2f1814/StrengthIntelligence.png',
+        'Shadow': 'https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvR2Vtcy9TdXBwb3J0L0RleHRlcml0eUludGVsbGlnZW5jZSIsInMiOjAuNX1d/f3db06de9e/DexterityIntelligence.png',
+        'Scion': 'https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvR2Vtcy9TdXBwb3J0L1N0cmVuZ3RoRGV4dGVyaXR5SW50ZWxsaWdlbmNlIiwicyI6MC41fV0/8e5e3e3d3f/StrengthDexterityIntelligence.png'
     };
 
-    const imageKey = classMap[className];
-    if (!imageKey) return null;
-
-    // Используем Path of Building Community Fork иконки или fallback на простые иконки
-    // Альтернатива: используем простую генерацию через имя класса
-    return `https://web.poecdn.com/image/Art/2DArt/UIImages/InGame/AscendancyClassesIcons/${className}.png`;
+    return classImageMap[className] || null;
 }
 
 function getAscendancyImage(ascendClassName) {
@@ -453,8 +448,18 @@ function getItemIcon(item) {
 function getItemCategory(item) {
     const slot = item.slot ? item.slot.toLowerCase() : '';
     const basetype = item.base_type ? item.base_type.toLowerCase() : '';
+    const name = item.name ? item.name.toLowerCase() : '';
 
-    if (slot.includes('flask')) return 'Flasks';
+    // Flask проверка
+    if (slot.includes('flask') || basetype.includes('flask') || name.includes('flask')) {
+        return 'Flasks';
+    }
+
+    // Jewel проверка
+    if (slot.includes('jewel') || basetype.includes('jewel') || name.includes('jewel')) {
+        return 'Jewels';
+    }
+
     if (slot.includes('amulet')) return 'Amulets';
     if (slot.includes('ring')) return 'Rings';
     if (slot.includes('belt')) return 'Belts';

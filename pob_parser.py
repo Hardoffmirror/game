@@ -140,9 +140,74 @@ class PoBParser:
                 if value and value.lower() == 'true':
                     stats['config'].append(name)
 
-        # Ищем статистику в PlayerStat (если есть)
-        # Обычно PoB хранит вычисленную статистику в Build элементе или в отдельных секциях
-        # но формат может различаться. Попробуем извлечь что можем.
+        # Ищем статистику в PlayerStat секции
+        # Path of Building хранит вычисленную статистику в элементе Build/PlayerStat
+        if build_elem is not None:
+            player_stat = build_elem.find('PlayerStat')
+            if player_stat is not None:
+                # Извлекаем статистику из атрибутов
+                # Список возможных полей очень большой, берем основные
+                stat_map = {
+                    'Life': 'life',
+                    'Spec:Life': 'life',
+                    'TotalLife': 'life',
+                    'EnergyShield': 'es',
+                    'Spec:EnergyShield': 'es',
+                    'TotalEnergyShield': 'es',
+                    'Mana': 'mana',
+                    'Spec:Mana': 'mana',
+                    'TotalMana': 'mana',
+                    'TotalDPS': 'dps',
+                    'CombinedDPS': 'dps',
+                    'WithPoisonDPS': 'dps',
+                    'AverageDamage': 'dps',
+                    'Speed': 'speed',
+                    'HitSpeed': 'speed',
+                    'AttackRate': 'speed',
+                    'CastRate': 'speed',
+                    'HitChance': 'hit_chance',
+                    'CritChance': 'crit_chance',
+                    'CritMultiplier': 'crit_multi',
+                    'FireResist': 'fire_resist',
+                    'ColdResist': 'cold_resist',
+                    'LightningResist': 'lightning_resist',
+                    'ChaosResist': 'chaos_resist',
+                    'EvadeChance': 'evade_chance',
+                    'Evasion': 'evade_chance',
+                }
+
+                # Перебираем все атрибуты PlayerStat
+                for attr_name, attr_value in player_stat.attrib.items():
+                    if attr_name in stat_map:
+                        field = stat_map[attr_name]
+                        try:
+                            # Пытаемся преобразовать в число
+                            value = float(attr_value.replace(',', ''))
+
+                            if 'resist' in field:
+                                # Сопротивления
+                                resist_type = field.replace('_resist', '')
+                                stats['resistances'][resist_type] = int(value)
+                            elif field == 'dps' and stats['dps'] is None:
+                                stats['dps'] = int(value)
+                            elif field == 'life' and stats['life'] is None:
+                                stats['life'] = int(value)
+                            elif field == 'es' and stats['es'] is None:
+                                stats['es'] = int(value)
+                            elif field == 'mana' and stats['mana'] is None:
+                                stats['mana'] = int(value)
+                            elif field == 'speed' and stats['speed'] is None:
+                                stats['speed'] = round(value, 2)
+                            elif field == 'hit_chance' and stats['hit_chance'] is None:
+                                stats['hit_chance'] = int(value)
+                            elif field == 'crit_chance' and stats['crit_chance'] is None:
+                                stats['crit_chance'] = round(value, 1)
+                            elif field == 'crit_multi' and stats['crit_multi'] is None:
+                                stats['crit_multi'] = int(value)
+                            elif field == 'evade_chance' and stats['evade_chance'] is None:
+                                stats['evade_chance'] = int(value)
+                        except (ValueError, AttributeError):
+                            pass
 
         return stats
 
