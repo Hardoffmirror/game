@@ -166,16 +166,17 @@ header h1 {
 
 .items-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 15px;
 }
 
 .item-card {
     background-color: var(--bg-card);
     border-radius: 8px;
-    padding: 15px;
+    padding: 12px;
     border-left: 4px solid var(--border);
     transition: transform 0.2s, box-shadow 0.2s;
+    font-size: 0.9rem;
 }
 
 .item-card:hover {
@@ -201,15 +202,17 @@ header h1 {
 
 .item-slot {
     color: var(--text-secondary);
-    font-size: 0.9rem;
-    margin-bottom: 10px;
+    font-size: 0.75rem;
+    margin-bottom: 6px;
     font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .item-name {
-    font-size: 1.3rem;
+    font-size: 1.1rem;
     font-weight: bold;
-    margin-bottom: 5px;
+    margin-bottom: 3px;
 }
 
 .item-name.rarity-normal { color: var(--rarity-normal); }
@@ -219,12 +222,18 @@ header h1 {
 
 .item-base-type {
     color: var(--text-secondary);
-    font-size: 1rem;
-    margin-bottom: 15px;
+    font-size: 0.85rem;
+    margin-bottom: 8px;
+    cursor: pointer;
+}
+
+.item-base-type:hover {
+    text-decoration: underline;
+    opacity: 0.8;
 }
 
 .item-mods {
-    margin-top: 10px;
+    margin-top: 6px;
 }
 
 .mod-implicit {
@@ -262,15 +271,16 @@ header h1 {
 }
 
 .item-properties {
-    margin-top: 8px;
-    padding-top: 8px;
+    margin-top: 6px;
+    padding-top: 6px;
     border-top: 1px solid var(--border);
 }
 
 .property {
-    font-size: 0.85rem;
-    margin: 2px 0;
+    font-size: 0.8rem;
+    margin: 1px 0;
     color: #d0d0d0;
+    line-height: 1.3;
 }
 
 .property-name {
@@ -278,21 +288,22 @@ header h1 {
 }
 
 .item-requirements {
-    margin-top: 8px;
-    padding-top: 8px;
+    margin-top: 6px;
+    padding-top: 6px;
     border-top: 1px solid var(--border);
-    font-size: 0.8rem;
+    font-size: 0.75rem;
 }
 
 .requirements-title {
     color: var(--text-secondary);
-    margin-bottom: 4px;
-    font-size: 0.8rem;
+    margin-bottom: 2px;
+    font-size: 0.75rem;
 }
 
 .requirement {
     color: var(--text-secondary);
-    margin: 1px 0;
+    margin: 0;
+    line-height: 1.3;
 }
 
 .item-status {
@@ -381,18 +392,18 @@ header h1 {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 5px;
+    gap: 8px;
+    margin-bottom: 4px;
 }
 
 .item-level {
     color: var(--text-secondary);
-    font-size: 0.85rem;
+    font-size: 0.7rem;
     font-weight: normal;
     white-space: nowrap;
-    padding: 2px 8px;
+    padding: 2px 6px;
     background-color: rgba(255, 255, 255, 0.05);
-    border-radius: 4px;
+    border-radius: 3px;
 }
 
 /* Копируемые элементы */
@@ -436,52 +447,111 @@ header h1 {
 /* Сокеты */
 .item-sockets {
     display: flex;
-    gap: 8px;
-    margin: 10px 0;
+    gap: 6px;
+    margin: 6px 0;
     flex-wrap: wrap;
 }
 
 .socket-group {
     display: flex;
     align-items: center;
-    gap: 3px;
+    gap: 2px;
     background-color: rgba(0, 0, 0, 0.3);
-    padding: 4px 6px;
-    border-radius: 4px;
+    padding: 3px 5px;
+    border-radius: 3px;
 }
 
 .socket {
     display: inline-block;
-    width: 14px;
-    height: 14px;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
     border: 2px solid rgba(0, 0, 0, 0.5);
-    box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
 }
 
 .socket-link {
-    width: 4px;
+    width: 3px;
     height: 2px;
     background-color: rgba(255, 255, 255, 0.3);
 }
 
 /* Компактные моды */
 .mod-section {
-    margin-bottom: 8px;
+    margin-bottom: 6px;
 }
 
 .mod-section-title {
     color: var(--accent);
-    font-size: 0.85rem;
+    font-size: 0.75rem;
     font-weight: bold;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .mod-line {
-    padding: 2px 0;
-    font-size: 0.9rem;
+    padding: 1px 0;
+    font-size: 0.85rem;
     border-left: 2px solid transparent;
-    padding-left: 8px;
+    padding-left: 6px;
+    line-height: 1.4;
+}
+
+/* Trade link */
+.item-name-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+}
+
+.trade-link {
+    font-size: 1.2rem;
+    text-decoration: none;
+    opacity: 0.7;
+    transition: opacity 0.2s, transform 0.2s;
+}
+
+.trade-link:hover {
+    opacity: 1;
+    transform: scale(1.15);
+}
+
+/* Item gems display */
+.item-gems {
+    margin: 8px 0;
+    padding: 8px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    border-left: 3px solid var(--rarity-gem);
+}
+
+.item-gems .gem-item {
+    padding: 3px 6px;
+    margin: 3px 0;
+    border-radius: 3px;
+    background-color: rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+    transition: background-color 0.2s;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+}
+
+.item-gems .gem-item:hover {
+    background-color: rgba(0, 0, 0, 0.35);
+}
+
+.item-gems .gem-name {
+    font-weight: 500;
+}
+
+.item-gems .gem-details {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    margin-left: 8px;
 }
 
 /* Адаптивность */

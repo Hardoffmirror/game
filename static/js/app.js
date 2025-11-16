@@ -83,17 +83,26 @@ function displayResults(data) {
     // Информация о билде
     displayBuildInfo(data.build_info);
 
-    // Экипировка
-    displayItems(data.equipment, 'equipmentList');
+    // Создаем карту камней по слотам
+    const gemsBySlot = {};
+    if (data.gems) {
+        data.gems.forEach(gemGroup => {
+            const slot = gemGroup.slot || gemGroup.label;
+            if (!gemsBySlot[slot]) {
+                gemsBySlot[slot] = [];
+            }
+            gemsBySlot[slot].push(gemGroup);
+        });
+    }
+
+    // Экипировка (с камнями)
+    displayItems(data.equipment, 'equipmentList', gemsBySlot);
 
     // Самоцветы (Jewels)
     displayItems(data.jewels, 'jewelsList');
 
     // Фласки
     displayItems(data.flasks, 'flasksList');
-
-    // Камни умений (Gems)
-    displayGems(data.gems, 'gemsList');
 
     showResults();
 }
@@ -108,7 +117,7 @@ function displayBuildInfo(buildInfo) {
     `;
 }
 
-function displayItems(items, containerId) {
+function displayItems(items, containerId, gemsBySlot = {}) {
     const container = document.getElementById(containerId);
 
     if (!items || items.length === 0) {
@@ -116,11 +125,14 @@ function displayItems(items, containerId) {
         return;
     }
 
-    container.innerHTML = items.map(item => createItemCard(item)).join('');
+    container.innerHTML = items.map(item => createItemCard(item, gemsBySlot)).join('');
 }
 
-function createItemCard(item) {
+function createItemCard(item, gemsBySlot = {}) {
     const rarityClass = getRarityClass(item.rarity);
+
+    // Получаем камни для этого слота
+    const itemGems = gemsBySlot[item.slot] || [];
 
     // Функция для отображения мода (может быть объект или строка)
     const renderMod = (mod) => {
@@ -182,7 +194,7 @@ function createItemCard(item) {
     const implicitsHtml = item.implicits && item.implicits.length > 0
         ? `
             <div class="mod-section">
-                ${item.implicits.map(mod => `<div class="mod-line mod-implicit">${renderMod(mod)}</div>`).join('')}
+                ${item.implicits.map(mod => `<div class="mod-line mod-implicit copyable" onclick="copyToClipboard('${escapeForAttribute(renderMod(mod))}')">${renderMod(mod)}</div>`).join('')}
             </div>
         `
         : '';
@@ -191,7 +203,7 @@ function createItemCard(item) {
     const enchantModsHtml = item.enchant_mods && item.enchant_mods.length > 0
         ? `
             <div class="mod-section">
-                ${item.enchant_mods.map(mod => `<div class="mod-line mod-enchant">${renderMod(mod)}</div>`).join('')}
+                ${item.enchant_mods.map(mod => `<div class="mod-line mod-enchant copyable" onclick="copyToClipboard('${escapeForAttribute(renderMod(mod))}')">${renderMod(mod)}</div>`).join('')}
             </div>
         `
         : '';
@@ -221,7 +233,7 @@ function createItemCard(item) {
         ? `
             <div class="mod-section">
                 <div class="mod-section-title">Крафтовые:</div>
-                ${item.crafted_mods.map(mod => `<div class="mod-line mod-crafted">${renderMod(mod)}</div>`).join('')}
+                ${item.crafted_mods.map(mod => `<div class="mod-line mod-crafted copyable" onclick="copyToClipboard('${escapeForAttribute(renderMod(mod))}')">${renderMod(mod)}</div>`).join('')}
             </div>
         `
         : '';
@@ -231,7 +243,7 @@ function createItemCard(item) {
         ? `
             <div class="mod-section">
                 <div class="mod-section-title">Fractured:</div>
-                ${item.fractured_mods.map(mod => `<div class="mod-line mod-fractured">${renderMod(mod)}</div>`).join('')}
+                ${item.fractured_mods.map(mod => `<div class="mod-line mod-fractured copyable" onclick="copyToClipboard('${escapeForAttribute(renderMod(mod))}')">${renderMod(mod)}</div>`).join('')}
             </div>
         `
         : '';
@@ -241,7 +253,7 @@ function createItemCard(item) {
         ? `
             <div class="mod-section">
                 <div class="mod-section-title">Моды:</div>
-                ${item.explicits.map(mod => `<div class="mod-line mod-explicit">${renderMod(mod)}</div>`).join('')}
+                ${item.explicits.map(mod => `<div class="mod-line mod-explicit copyable" onclick="copyToClipboard('${escapeForAttribute(renderMod(mod))}')">${renderMod(mod)}</div>`).join('')}
             </div>
         `
         : '';
@@ -255,15 +267,26 @@ function createItemCard(item) {
         statusHtml.push('<div class="item-status mirrored">Mirrored</div>');
     }
 
+    // Создаем ссылку на trade
+    const tradeUrl = createTradeUrl(item);
+    const tradeLink = tradeUrl ? `<a href="${tradeUrl}" target="_blank" class="trade-link" title="Искать на trade">🔗</a>` : '';
+
+    // Отображаем камни для этого предмета
+    const gemsHtml = itemGems.length > 0 ? createGemsDisplay(itemGems) : '';
+
     return `
         <div class="item-card ${rarityClass}">
             <div class="item-slot">${escapeHtml(item.slot)}</div>
             <div class="item-header">
-                <div class="item-name ${rarityClass} copyable" onclick="copyToClipboard('${escapeForAttribute(item.name)}')" title="Нажмите, чтобы скопировать">${escapeHtml(item.name)}</div>
+                <div class="item-name-wrapper">
+                    <div class="item-name ${rarityClass} copyable" onclick="copyToClipboard('${escapeForAttribute(item.name)}')" title="Нажмите, чтобы скопировать">${escapeHtml(item.name)}</div>
+                    ${tradeLink}
+                </div>
                 ${itemLevel ? `<div class="item-level">iLvl ${escapeHtml(itemLevel)}</div>` : ''}
             </div>
-            ${item.base_type && item.base_type !== item.name ? `<div class="item-base-type">${escapeHtml(item.base_type)}</div>` : ''}
+            ${item.base_type && item.base_type !== item.name ? `<div class="item-base-type copyable" onclick="copyToClipboard('${escapeForAttribute(item.base_type)}')">${escapeHtml(item.base_type)}</div>` : ''}
             ${socketsHtml}
+            ${gemsHtml}
             ${propertiesHtml}
             ${requirementsHtml}
             <div class="item-mods">
@@ -280,44 +303,97 @@ function createItemCard(item) {
     `;
 }
 
-function displayGems(gems, containerId) {
-    const container = document.getElementById(containerId);
+function createGemsDisplay(gemGroups) {
+    const gemsHtml = gemGroups.map(gemGroup => {
+        const gems = gemGroup.gems.map(gem => {
+            const details = `Lvl ${gem.level} | Q ${gem.quality}%`;
+            const gemColor = getGemColor(gem.nameSpec);
 
-    if (!gems || gems.length === 0) {
-        container.innerHTML = '<div class="empty-message">Нет камней умений</div>';
-        return;
-    }
+            return `
+                <div class="gem-item copyable" style="color: ${gemColor};" onclick="copyToClipboard('${escapeForAttribute(gem.nameSpec)}')" title="Нажмите, чтобы скопировать">
+                    <span class="gem-name">${escapeHtml(gem.nameSpec)}</span>
+                    <span class="gem-details">${details}</span>
+                </div>
+            `;
+        }).join('');
 
-    container.innerHTML = gems.map(gemGroup => createGemGroup(gemGroup)).join('');
-}
-
-function createGemGroup(gemGroup) {
-    const gemsHtml = gemGroup.gems.map(gem => {
-        const details = `Lvl ${gem.level} | Q ${gem.quality}%`;
-
-        // Определяем тип камня для цвета (по первой букве nameSpec или по поддержке)
-        let gemType = '';
-        const nameLower = gem.nameSpec.toLowerCase();
-        if (nameLower.includes('support')) {
-            gemType = 'support';
-        }
-
-        return `
-            <li class="gem-item ${gemType}" onclick="copyToClipboard('${escapeForAttribute(gem.nameSpec)}')" title="Нажмите, чтобы скопировать">
-                <div class="gem-name">${escapeHtml(gem.nameSpec)}</div>
-                <div class="gem-details">${details}</div>
-            </li>
-        `;
+        return gems;
     }).join('');
 
-    return `
-        <div class="gem-group">
-            <div class="gem-group-label">${escapeHtml(gemGroup.label)}</div>
-            <ul class="gem-list">
-                ${gemsHtml}
-            </ul>
-        </div>
-    `;
+    return `<div class="item-gems">${gemsHtml}</div>`;
+}
+
+function getGemColor(gemName) {
+    const nameLower = gemName.toLowerCase();
+
+    // Определяем цвет камня по общим паттернам
+    // Красные (Strength) камни
+    const redGems = ['molten', 'fire', 'burning', 'flame', 'infernal', 'magma', 'volcanic', 'anger', 'determination', 'vitality', 'purity of fire', 'herald of ash', 'cleave', 'ground slam', 'heavy strike', 'shield charge', 'leap slam', 'earthquake', 'sunder', 'ancestral', 'warchief', 'protector', 'enduring cry', 'immortal call', 'rallying cry'];
+
+    // Зеленые (Dexterity) камни
+    const greenGems = ['lightning', 'spark', 'arc', 'storm', 'shock', 'wrath', 'grace', 'haste', 'purity of lightning', 'herald of thunder', 'herald of ice', 'split arrow', 'ice shot', 'tornado shot', 'rain of arrows', 'barrage', 'blast rain', 'caustic arrow', 'toxic rain', 'viper strike', 'pestilent strike', 'cobra lash', 'plague bearer'];
+
+    // Синие (Intelligence) камни
+    const blueGems = ['cold', 'ice', 'frost', 'freeze', 'glacial', 'arctic', 'clarity', 'discipline', 'purity of ice', 'herald of', 'freezing pulse', 'frostbolt', 'ice nova', 'vortex', 'cold snap', 'spark', 'ball lightning', 'arc', 'wave of conviction', 'orb of storms', 'discharge', 'firestorm', 'flameblast'];
+
+    // Support gems (обычно белые или оранжевые)
+    if (nameLower.includes('support')) {
+        return '#ffaa44';  // Оранжевый для support
+    }
+
+    // Проверяем красные
+    for (const keyword of redGems) {
+        if (nameLower.includes(keyword)) {
+            return '#ff4444';  // Красный
+        }
+    }
+
+    // Проверяем зеленые
+    for (const keyword of greenGems) {
+        if (nameLower.includes(keyword)) {
+            return '#44ff44';  // Зеленый
+        }
+    }
+
+    // Проверяем синие
+    for (const keyword of blueGems) {
+        if (nameLower.includes(keyword)) {
+            return '#4444ff';  // Синий
+        }
+    }
+
+    // По умолчанию белый (для гибридных и неизвестных)
+    return '#ffffff';
+}
+
+function createTradeUrl(item) {
+    // Текущая лига (можно будет сделать динамической позже)
+    const currentLeague = 'Kreepers';  // TODO: сделать динамическим
+
+    if (!item.name) return null;
+
+    // For unique items, search by name
+    if (item.rarity && item.rarity.toLowerCase().includes('unique')) {
+        const query = encodeURIComponent(JSON.stringify({
+            "query": {
+                "name": item.name
+            }
+        }));
+        return `https://www.pathofexile.com/trade/search/${currentLeague}?q=${query}`;
+    }
+
+    // For rare items, search by base type
+    if (item.base_type && item.rarity && item.rarity.toLowerCase().includes('rare')) {
+        const query = encodeURIComponent(JSON.stringify({
+            "query": {
+                "type": item.base_type
+            }
+        }));
+        return `https://www.pathofexile.com/trade/search/${currentLeague}?q=${query}`;
+    }
+
+    // For other items, generic search
+    return null;
 }
 
 function getRarityClass(rarity) {
