@@ -142,10 +142,16 @@ function createItemCard(item, gemsBySlot = {}) {
         return escapeHtml(mod);
     };
 
-    // Извлечь уровень и сокеты из properties
+    // Извлечь уровень, сокеты и важные характеристики из properties
     let itemLevel = '';
     let socketsHtml = '';
-    const filteredProperties = {};
+    const headerProperties = {};  // Характеристики для header (Armour, Quality и т.д.)
+    const filteredProperties = {};  // Остальные свойства
+
+    // Список ключевых характеристик для вывода в header
+    const headerPropertyKeys = ['Armour', 'Evasion', 'Energy Shield', 'Quality', 'Physical Damage',
+                                'Elemental Damage', 'Critical Strike Chance', 'Attacks per Second',
+                                'Cast Time', 'Block'];
 
     if (item.properties) {
         Object.entries(item.properties).forEach(([key, value]) => {
@@ -163,7 +169,12 @@ function createItemCard(item, gemsBySlot = {}) {
                 socketsHtml = createSocketsDisplay(value);
                 return;
             }
-            filteredProperties[key] = value;
+            // Разделяем на header properties и обычные
+            if (headerPropertyKeys.includes(key)) {
+                headerProperties[key] = value;
+            } else {
+                filteredProperties[key] = value;
+            }
         });
     }
 
@@ -271,6 +282,15 @@ function createItemCard(item, gemsBySlot = {}) {
     const tradeUrl = createTradeUrl(item);
     const tradeLink = tradeUrl ? `<a href="${tradeUrl}" target="_blank" class="trade-link" title="Искать на trade">🔗</a>` : '';
 
+    // Создаем HTML для header properties
+    const headerPropsHtml = Object.keys(headerProperties).length > 0
+        ? `<div class="item-header-props">
+            ${Object.entries(headerProperties).map(([key, value]) =>
+                `<span class="header-prop"><span class="prop-key">${escapeHtml(key)}:</span> ${escapeHtml(value)}</span>`
+            ).join('')}
+        </div>`
+        : '';
+
     // Отображаем камни для этого предмета
     const gemsHtml = itemGems.length > 0 ? createGemsDisplay(itemGems) : '';
 
@@ -282,7 +302,10 @@ function createItemCard(item, gemsBySlot = {}) {
                     <div class="item-name ${rarityClass} copyable" onclick="copyToClipboard('${escapeForAttribute(item.name)}')" title="Нажмите, чтобы скопировать">${escapeHtml(item.name)}</div>
                     ${tradeLink}
                 </div>
-                ${itemLevel ? `<div class="item-level">iLvl ${escapeHtml(itemLevel)}</div>` : ''}
+                <div class="item-header-right">
+                    ${itemLevel ? `<div class="item-level">iLvl ${escapeHtml(itemLevel)}</div>` : ''}
+                    ${headerPropsHtml}
+                </div>
             </div>
             ${item.base_type && item.base_type !== item.name ? `<div class="item-base-type copyable" onclick="copyToClipboard('${escapeForAttribute(item.base_type)}')">${escapeHtml(item.base_type)}</div>` : ''}
             ${socketsHtml}
@@ -382,8 +405,36 @@ function createTradeUrl(item) {
         return `https://www.pathofexile.com/trade/search/${currentLeague}?q=${query}`;
     }
 
-    // For rare items, search by base type
+    // For rare items, search by base type + item level
     if (item.base_type && item.rarity && item.rarity.toLowerCase().includes('rare')) {
+        const queryObj = {
+            "query": {
+                "type": item.base_type,
+                "filters": {}
+            }
+        };
+
+        // Добавляем фильтр по item level если есть
+        if (item.properties && item.properties['Item Level']) {
+            const ilvl = parseInt(item.properties['Item Level']);
+            if (!isNaN(ilvl)) {
+                queryObj.query.filters.misc_filters = {
+                    "filters": {
+                        "ilvl": {
+                            "min": Math.max(1, ilvl - 5),
+                            "max": ilvl + 5
+                        }
+                    }
+                };
+            }
+        }
+
+        const query = encodeURIComponent(JSON.stringify(queryObj));
+        return `https://www.pathofexile.com/trade/search/${currentLeague}?q=${query}`;
+    }
+
+    // For magic items, search by base type
+    if (item.base_type && item.rarity && item.rarity.toLowerCase().includes('magic')) {
         const query = encodeURIComponent(JSON.stringify({
             "query": {
                 "type": item.base_type
