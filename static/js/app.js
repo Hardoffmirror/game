@@ -733,6 +733,9 @@ function createItemCard(item, gemsBySlot = {}) {
     // Отображаем камни для этого предмета
     const gemsHtml = itemGems.length > 0 ? createGemsDisplay(itemGems) : '';
 
+    // Создаем HTML для статистики предмета
+    const itemStatsHtml = createItemStatsDisplay(item.stats);
+
     return `
         <div class="item-card ${rarityClass}">
             <div class="item-card-top">
@@ -762,6 +765,7 @@ function createItemCard(item, gemsBySlot = {}) {
                 ${fracturedModsHtml}
                 ${explicitsHtml}
             </div>
+            ${itemStatsHtml}
             ${statusHtml.join('')}
         </div>
     `;
@@ -1168,4 +1172,25 @@ function getCategoryFromSlot(slot) {
     if (slotLower.includes('weapon')) return 'Weapons';
 
     return 'Currency';
+}
+
+function createItemStatsDisplay(stats) {
+    // Если статистики нет или она пустая, не отображаем спойлер
+    if (!stats || Object.keys(stats).length === 0) {
+        return '';
+    }
+
+    // Формируем список статов
+    const statsList = Object.entries(stats).map(([statName, statValue]) => {
+        return `<div class="item-stat-line">${escapeHtml(statValue)}</div>`;
+    }).join('');
+
+    return `
+        <details class="item-stats-spoiler">
+            <summary class="item-stats-summary">📊 Характеристики предмета</summary>
+            <div class="item-stats-content">
+                ${statsList}
+            </div>
+        </details>
+    `;
 }

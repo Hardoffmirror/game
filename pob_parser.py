@@ -449,6 +449,10 @@ class PoBParser:
             name_lower = item_data.get('name', '').lower()
             base_type_lower = item_data.get('base_type', '').lower()
 
+            # Рассчитываем статистику предмета
+            item_stats = self.calculate_item_stats(item_data)
+            item_data['stats'] = item_stats
+
             # Проверяем jewels (самоцветы) - по типу, слоту или названию
             if ('jewel' in item_type or 'jewel' in slot_lower or 'jewel' in name_lower or 'jewel' in base_type_lower):
                 jewels.append(item_data)
@@ -491,6 +495,10 @@ class PoBParser:
             slot_lower = slot_name.lower()
             name_lower = item_data.get('name', '').lower()
             base_type_lower = item_data.get('base_type', '').lower()
+
+            # Рассчитываем статистику предмета
+            item_stats = self.calculate_item_stats(item_data)
+            item_data['stats'] = item_stats
 
             # Проверяем jewels - по типу, слоту, названию или base_type
             if ('jewel' in item_type or 'jewel' in slot_lower or
@@ -1014,6 +1022,112 @@ class PoBParser:
             'flasks': items['flasks'],
             'gems': gems
         }
+
+    def calculate_item_stats(self, item_data: Dict) -> Dict:
+        """
+        Рассчитывает статистику, которую дает конкретный предмет
+
+        Args:
+            item_data: Данные предмета из парсера
+
+        Returns:
+            Словарь со статистикой предмета (например, {'+50 to maximum Life', '+20% Fire Resistance'})
+        """
+        # Создаём временный ModDB только для этого предмета
+        mod_db = ModDB()
+
+        # Парсим моды предмета
+        ModParser.parse_item_mods(item_data, mod_db, source="SingleItem")
+
+        # Собираем все распознанные статы
+        stats = {}
+
+        # Получаем все моды из базы
+        all_mods = mod_db.get_all_mods()
+
+        for stat_name, mod_list in all_mods.items():
+            # Суммируем все значения для каждого стата
+            total_value = sum(mod.value for mod in mod_list)
+
+            if total_value != 0:
+                # Форматируем значение в зависимости от типа стата
+                stats[stat_name] = self._format_stat_value(stat_name, total_value)
+
+        return stats
+
+    def _format_stat_value(self, stat_name: str, value: float) -> str:
+        """
+        Форматирует значение стата для отображения
+
+        Args:
+            stat_name: Имя стата (например, 'Life', 'FireResist')
+            value: Числовое значение
+
+        Returns:
+            Отформатированная строка (например, '+50 to Life', '+15% Fire Resistance')
+        """
+        # Резисты и процентные модификаторы
+        resist_stats = ['FireResist', 'ColdResist', 'LightningResist', 'ChaosResist']
+        percentage_stats = ['AttackSpeed', 'CastSpeed', 'MovementSpeed', 'CritChance',
+                           'PhysicalDamage', 'FireDamage', 'ColdDamage', 'LightningDamage',
+                           'ChaosDamage', 'ElementalDamage', 'SpellDamage']
+
+        # Форматируем значение
+        if value >= 0:
+            sign = '+'
+        else:
+            sign = ''
+
+        # Преобразуем имя стата в читабельный формат
+        readable_name = self._get_readable_stat_name(stat_name)
+
+        if stat_name in resist_stats:
+            return f"{sign}{int(value)}% {readable_name}"
+        elif stat_name in percentage_stats:
+            return f"{sign}{int(value)}% {readable_name}"
+        else:
+            # Для flat значений (Life, Mana, Attributes и т.д.)
+            return f"{sign}{int(value)} {readable_name}"
+
+    def _get_readable_stat_name(self, stat_name: str) -> str:
+        """
+        Преобразует внутреннее имя стата в читабельное
+
+        Args:
+            stat_name: Внутреннее имя (например, 'FireResist')
+
+        Returns:
+            Читабельное имя (например, 'Fire Resistance')
+        """
+        name_map = {
+            'Life': 'to Life',
+            'Mana': 'to Mana',
+            'EnergyShield': 'to Energy Shield',
+            'Str': 'to Strength',
+            'Dex': 'to Dexterity',
+            'Int': 'to Intelligence',
+            'FireResist': 'Fire Resistance',
+            'ColdResist': 'Cold Resistance',
+            'LightningResist': 'Lightning Resistance',
+            'ChaosResist': 'Chaos Resistance',
+            'Armour': 'to Armour',
+            'Evasion': 'to Evasion Rating',
+            'AttackSpeed': 'Attack Speed',
+            'CastSpeed': 'Cast Speed',
+            'MovementSpeed': 'Movement Speed',
+            'CritChance': 'Critical Strike Chance',
+            'CritMultiplier': 'Critical Strike Multiplier',
+            'Accuracy': 'to Accuracy Rating',
+            'PhysicalDamage': 'Physical Damage',
+            'FireDamage': 'Fire Damage',
+            'ColdDamage': 'Cold Damage',
+            'LightningDamage': 'Lightning Damage',
+            'ChaosDamage': 'Chaos Damage',
+            'ElementalDamage': 'Elemental Damage',
+            'SpellDamage': 'Spell Damage',
+        }
+
+        return name_map.get(stat_name, stat_name)
 
     def calculate_character_stats(self) -> Dict:
         """
