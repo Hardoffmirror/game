@@ -53,6 +53,14 @@ document.addEventListener('DOMContentLoaded', () => {
             hideLoading();
         }
     });
+
+    // Делегирование событий для копирования
+    document.addEventListener('click', (e) => {
+        const copyable = e.target.closest('.copyable');
+        if (copyable && copyable.dataset.copy) {
+            copyToClipboard(copyable.dataset.copy);
+        }
+    });
 });
 
 function showError(message) {
@@ -558,7 +566,7 @@ function createItemCard(item, gemsBySlot = {}) {
     const implicitsHtml = item.implicits && item.implicits.length > 0
         ? `
             <div class="mod-section">
-                ${item.implicits.map(mod => `<div class="mod-line mod-implicit copyable" onclick="copyToClipboard('${escapeForAttribute(renderMod(mod))}')">${renderMod(mod)}</div>`).join('')}
+                ${item.implicits.map(mod => `<div class="mod-line mod-implicit copyable" data-copy="${escapeHtml(renderMod(mod))}" title="Нажмите для копирования">${renderMod(mod)}</div>`).join('')}
             </div>
         `
         : '';
@@ -567,7 +575,7 @@ function createItemCard(item, gemsBySlot = {}) {
     const enchantModsHtml = item.enchant_mods && item.enchant_mods.length > 0
         ? `
             <div class="mod-section">
-                ${item.enchant_mods.map(mod => `<div class="mod-line mod-enchant copyable" onclick="copyToClipboard('${escapeForAttribute(renderMod(mod))}')">${renderMod(mod)}</div>`).join('')}
+                ${item.enchant_mods.map(mod => `<div class="mod-line mod-enchant copyable" data-copy="${escapeHtml(renderMod(mod))}" title="Нажмите для копирования">${renderMod(mod)}</div>`).join('')}
             </div>
         `
         : '';
@@ -577,7 +585,7 @@ function createItemCard(item, gemsBySlot = {}) {
         ? `
             <div class="mod-section">
                 <div class="mod-section-title">Префиксы:</div>
-                ${item.prefixes.map(mod => `<div class="mod-line mod-prefix copyable" onclick="copyToClipboard('${escapeForAttribute(renderMod(mod))}')">${renderMod(mod)}</div>`).join('')}
+                ${item.prefixes.map(mod => `<div class="mod-line mod-prefix copyable" data-copy="${escapeHtml(renderMod(mod))}" title="Нажмите для копирования">${renderMod(mod)}</div>`).join('')}
             </div>
         `
         : '';
@@ -587,7 +595,7 @@ function createItemCard(item, gemsBySlot = {}) {
         ? `
             <div class="mod-section">
                 <div class="mod-section-title">Суффиксы:</div>
-                ${item.suffixes.map(mod => `<div class="mod-line mod-suffix copyable" onclick="copyToClipboard('${escapeForAttribute(renderMod(mod))}')">${renderMod(mod)}</div>`).join('')}
+                ${item.suffixes.map(mod => `<div class="mod-line mod-suffix copyable" data-copy="${escapeHtml(renderMod(mod))}" title="Нажмите для копирования">${renderMod(mod)}</div>`).join('')}
             </div>
         `
         : '';
@@ -597,7 +605,7 @@ function createItemCard(item, gemsBySlot = {}) {
         ? `
             <div class="mod-section">
                 <div class="mod-section-title">Крафтовые:</div>
-                ${item.crafted_mods.map(mod => `<div class="mod-line mod-crafted copyable" onclick="copyToClipboard('${escapeForAttribute(renderMod(mod))}')">${renderMod(mod)}</div>`).join('')}
+                ${item.crafted_mods.map(mod => `<div class="mod-line mod-crafted copyable" data-copy="${escapeHtml(renderMod(mod))}" title="Нажмите для копирования">${renderMod(mod)}</div>`).join('')}
             </div>
         `
         : '';
@@ -607,7 +615,7 @@ function createItemCard(item, gemsBySlot = {}) {
         ? `
             <div class="mod-section">
                 <div class="mod-section-title">Fractured:</div>
-                ${item.fractured_mods.map(mod => `<div class="mod-line mod-fractured copyable" onclick="copyToClipboard('${escapeForAttribute(renderMod(mod))}')">${renderMod(mod)}</div>`).join('')}
+                ${item.fractured_mods.map(mod => `<div class="mod-line mod-fractured copyable" data-copy="${escapeHtml(renderMod(mod))}" title="Нажмите для копирования">${renderMod(mod)}</div>`).join('')}
             </div>
         `
         : '';
@@ -617,7 +625,7 @@ function createItemCard(item, gemsBySlot = {}) {
         ? `
             <div class="mod-section">
                 <div class="mod-section-title">Моды:</div>
-                ${item.explicits.map(mod => `<div class="mod-line mod-explicit copyable" onclick="copyToClipboard('${escapeForAttribute(renderMod(mod))}')">${renderMod(mod)}</div>`).join('')}
+                ${item.explicits.map(mod => `<div class="mod-line mod-explicit copyable" data-copy="${escapeHtml(renderMod(mod))}" title="Нажмите для копирования">${renderMod(mod)}</div>`).join('')}
             </div>
         `
         : '';
@@ -649,7 +657,10 @@ function createItemCard(item, gemsBySlot = {}) {
     const itemIconHtml = itemIcon ? `
         <div class="item-icon-wrapper">
             <img src="${itemIcon}" class="item-icon" alt="${escapeHtml(item.name)}"
-                 onerror="handleImageError(this, '${escapeForAttribute(item.name)}', '${escapeForAttribute(item.base_type || '')}', '${escapeForAttribute(item.slot || '')}')">
+                 data-item-name="${escapeHtml(item.name)}"
+                 data-base-type="${escapeHtml(item.base_type || '')}"
+                 data-slot="${escapeHtml(item.slot || '')}"
+                 onerror="handleImageError(this)">
         </div>
     ` : '';
 
@@ -664,14 +675,14 @@ function createItemCard(item, gemsBySlot = {}) {
             </div>
             <div class="item-header">
                 <div class="item-name-wrapper">
-                    <div class="item-name ${rarityClass} copyable" onclick="copyToClipboard('${escapeForAttribute(item.name)}')" title="Нажмите, чтобы скопировать">${escapeHtml(item.name)}</div>
+                    <div class="item-name ${rarityClass} copyable" data-copy="${escapeHtml(item.name)}" title="Нажмите, чтобы скопировать">${escapeHtml(item.name)}</div>
                     ${tradeLink}
                 </div>
                 <div class="item-header-right">
                     ${headerPropsHtml}
                 </div>
             </div>
-            ${item.base_type && item.base_type !== item.name ? `<div class="item-base-type copyable" onclick="copyToClipboard('${escapeForAttribute(item.base_type)}')">${escapeHtml(item.base_type)}</div>` : ''}
+            ${item.base_type && item.base_type !== item.name ? `<div class="item-base-type copyable" data-copy="${escapeHtml(item.base_type)}" title="Нажмите для копирования">${escapeHtml(item.base_type)}</div>` : ''}
             ${socketsHtml}
             ${gemsHtml}
             ${propertiesHtml}
@@ -697,7 +708,7 @@ function createGemsDisplay(gemGroups) {
             const gemColor = getGemColor(gem.nameSpec);
 
             return `
-                <div class="gem-item copyable" onclick="copyToClipboard('${escapeForAttribute(gem.nameSpec)}')" title="Нажмите, чтобы скопировать">
+                <div class="gem-item copyable" data-copy="${escapeHtml(gem.nameSpec)}" title="Нажмите, чтобы скопировать">
                     <span class="gem-name" style="color: ${gemColor};">${escapeHtml(gem.nameSpec)}</span>
                     <span class="gem-details">${details}</span>
                 </div>
@@ -728,7 +739,8 @@ function getGemColor(gemName) {
         'enduring cry', 'immortal call', 'rallying cry', 'blood rage',
         'melee', 'slam', 'smite', 'dominating blow', 'consecrated path',
         'cyclone', 'bladestorm', 'lacerate', 'reave', 'static strike',
-        'infused channelling', 'perforate', 'boneshatter', 'general'];
+        'infused channelling', 'perforate', 'boneshatter', 'general', 'warlord',
+        'strength', 'shockwave', 'tectonic', 'war', 'seismic', 'earthshatter'];
 
     // Зеленые (Dexterity) камни - проджектайлы, яды, ловушки
     const greenKeywords = ['split arrow', 'ice shot', 'tornado shot', 'rain of arrows',
@@ -739,7 +751,8 @@ function getGemColor(gemName) {
         'trap', 'mine', 'bear trap', 'lightning arrow', 'explosive arrow',
         'puncture', 'frenzy', 'double strike', 'dual strike', 'flicker strike',
         'whirling blades', 'blink arrow', 'mirror arrow', 'dash', 'spectral throw',
-        'ballista', 'artillery'];
+        'ballista', 'artillery', 'dexterity', 'evasion', 'ricochet', 'chain',
+        'shrapnel', 'galvanic', 'elemental hit'];
 
     // Синие (Intelligence) камни - холод, молния, заклинания, миньоны
     const blueKeywords = ['cold', 'ice', 'frost', 'freeze', 'glacial', 'arctic', 'frostbite',
@@ -751,7 +764,8 @@ function getGemColor(gemName) {
         'stone golem', 'chaos golem', 'flame golem', 'ice golem', 'lightning golem',
         'blade vortex', 'ethereal knives', 'bladefall', 'blade blast',
         'power siphon', 'kinetic blast', 'storm brand', 'armageddon brand',
-        'voltaxic burst', 'hydrosphere', 'orb', 'nova', 'pulse'];
+        'voltaxic burst', 'hydrosphere', 'orb', 'nova', 'pulse', 'intelligence',
+        'mana', 'energy shield', 'spell', 'cast', 'brand', 'totem', 'sigil'];
 
     // Проверяем ключевые слова для красных
     for (const keyword of redKeywords) {
@@ -967,9 +981,11 @@ function createSocketsDisplay(socketsString) {
     return `<div class="item-sockets">${groupsHtml}</div>`;
 }
 
-function handleImageError(img, itemName, baseType, slot) {
-    // Если изображение не загрузилось, пробуем альтернативные варианты
-    const currentSrc = img.src;
+function handleImageError(img) {
+    // Получаем данные из data-атрибутов
+    const itemName = img.dataset.itemName || '';
+    const baseType = img.dataset.baseType || '';
+    const slot = img.dataset.slot || '';
 
     // Если уже пробовали все варианты, скрываем иконку
     if (img.dataset.attempt && parseInt(img.dataset.attempt) >= 3) {

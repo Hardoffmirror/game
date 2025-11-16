@@ -564,14 +564,21 @@ class PoBParser:
                 i += 1
                 continue
 
+            # Пропускаем Unique ID перед именем
+            if line.startswith('Unique ID:') or 'Unique ID:' in line:
+                i += 1
+                continue
+
             # Название предмета (после Rarity)
             if rarity != "NORMAL" and (not name or name == "Unknown"):
                 name = line
                 i += 1
                 # Следующая строка может быть base type для rare/magic
                 if i < len(lines) and not lines[i].startswith('---') and not lines[i].startswith('Rarity:'):
-                    base_type = lines[i]
-                    i += 1
+                    # Также проверяем что это не Unique ID
+                    if not (lines[i].startswith('Unique ID:') or 'Unique ID:' in lines[i]):
+                        base_type = lines[i]
+                        i += 1
                 continue
 
             # Для normal предметов название = base type
