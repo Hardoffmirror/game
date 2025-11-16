@@ -374,15 +374,15 @@ function formatNumber(num) {
 function getClassImage(className) {
     if (!className) return null;
 
-    // Используем PoE Wiki для иконок классов - более надежный источник
+    // Используем актуальные иконки классов из PoE CDN
     const classImageMap = {
-        'Marauder': 'https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvR2Vtcy9TdXBwb3J0L1N0cmVuZ3RoIiwicyI6MC41fV0/9f2c4a28c0/Strength.png',
-        'Ranger': 'https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvR2Vtcy9TdXBwb3J0L0RleHRlcml0eSIsInMiOjAuNX1d/a6f2b03ad1/Dexterity.png',
-        'Witch': 'https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvR2Vtcy9TdXBwb3J0L0ludGVsbGlnZW5jZSIsInMiOjAuNX1d/5b53c20e8e/Intelligence.png',
-        'Duelist': 'https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvR2Vtcy9TdXBwb3J0L1N0cmVuZ3RoRGV4dGVyaXR5IiwicyI6MC41fV0/8b0e3a5994/StrengthDexterity.png',
-        'Templar': 'https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvR2Vtcy9TdXBwb3J0L1N0cmVuZ3RoSW50ZWxsaWdlbmNlIiwicyI6MC41fV0/f0dc2f1814/StrengthIntelligence.png',
-        'Shadow': 'https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvR2Vtcy9TdXBwb3J0L0RleHRlcml0eUludGVsbGlnZW5jZSIsInMiOjAuNX1d/f3db06de9e/DexterityIntelligence.png',
-        'Scion': 'https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvR2Vtcy9TdXBwb3J0L1N0cmVuZ3RoRGV4dGVyaXR5SW50ZWxsaWdlbmNlIiwicyI6MC41fV0/8e5e3e3d3f/StrengthDexterityIntelligence.png'
+        'Marauder': 'https://web.poecdn.com/image/Art/2DArt/SkillIcons/passives/Strength.png',
+        'Ranger': 'https://web.poecdn.com/image/Art/2DArt/SkillIcons/passives/Dexterity.png',
+        'Witch': 'https://web.poecdn.com/image/Art/2DArt/SkillIcons/passives/Intelligence.png',
+        'Duelist': 'https://web.poecdn.com/image/Art/2DArt/SkillIcons/passives/StrengthDexterity.png',
+        'Templar': 'https://web.poecdn.com/image/Art/2DArt/SkillIcons/passives/StrengthIntelligence.png',
+        'Shadow': 'https://web.poecdn.com/image/Art/2DArt/SkillIcons/passives/DexterityIntelligence.png',
+        'Scion': 'https://web.poecdn.com/image/Art/2DArt/SkillIcons/passives/StrengthDexterityIntelligence.png'
     };
 
     return classImageMap[className] || null;
@@ -391,7 +391,7 @@ function getClassImage(className) {
 function getAscendancyImage(ascendClassName) {
     if (!ascendClassName || ascendClassName === 'None') return null;
 
-    // Маппинг подклассов к их иконкам
+    // Маппинг подклассов к их иконкам - используем актуальные пути
     const ascendancyMap = {
         'Juggernaut': 'Juggernaut',
         'Berserker': 'Berserker',
@@ -417,7 +417,8 @@ function getAscendancyImage(ascendClassName) {
     const imageName = ascendancyMap[ascendClassName];
     if (!imageName) return null;
 
-    return `https://web.poecdn.com/image/Art/2DArt/UIImages/InGame/AscendancyClassesIcons/${imageName}.png`;
+    // Используем правильный путь к иконкам ascendancy
+    return `https://web.poecdn.com/image/Art/2DArt/UIImages/InGame/AscendancyFrame${imageName}.png`;
 }
 
 function displayItems(items, containerId, gemsBySlot = {}) {
@@ -991,8 +992,9 @@ function handleImageError(img) {
     const slot = img.dataset.slot || '';
 
     // Если уже пробовали все варианты, скрываем иконку
-    if (img.dataset.attempt && parseInt(img.dataset.attempt) >= 3) {
+    if (img.dataset.attempt && parseInt(img.dataset.attempt) >= 5) {
         img.parentElement.style.display = 'none';
+        console.log(`[Image Error] Все попытки исчерпаны для: ${itemName || baseType}`);
         return;
     }
 
@@ -1020,10 +1022,51 @@ function handleImageError(img) {
             .replace(/[^a-zA-Z0-9]/g, '');
 
         img.src = `https://web.poecdn.com/image/Art/2DItems/${category}/${cleanName}.png`;
+    } else if (attempt === 3) {
+        // Попытка 3: базовый тип для unique предметов
+        if (baseType) {
+            const baseClean = baseType
+                .replace(/[^a-zA-Z0-9\s]/g, '')
+                .replace(/\s+/g, '');
+            img.src = `https://web.poecdn.com/image/Art/2DItems/${category}/${baseClean}.png`;
+        } else {
+            img.dataset.attempt = '5'; // Пропускаем остальные попытки
+            img.parentElement.style.display = 'none';
+        }
+    } else if (attempt === 4) {
+        // Попытка 4: пробуем альтернативные категории
+        const altCategory = getAlternativeCategory(category, slot);
+        if (altCategory && altCategory !== category) {
+            const simplifiedName = (itemName || baseType)
+                .replace(/^The\s+/i, '')
+                .replace(/[''`´']/g, '')
+                .replace(/[^\w\s-]/g, '')
+                .replace(/\s+/g, '')
+                .replace(/-+/g, '');
+            img.src = `https://web.poecdn.com/image/Art/2DItems/${altCategory}/${simplifiedName}.png`;
+        } else {
+            img.dataset.attempt = '5'; // Пропускаем остальные попытки
+            img.parentElement.style.display = 'none';
+        }
     } else {
         // Скрываем иконку после всех попыток
         img.parentElement.style.display = 'none';
     }
+}
+
+function getAlternativeCategory(currentCategory, slot) {
+    // Возвращает альтернативные категории для разных типов предметов
+    const alternatives = {
+        'Weapons': 'Weapons',
+        'Armours/BodyArmours': 'Armours/BodyArmors',  // Американское написание
+        'Armours/Helmets': 'Armours/Helms',
+        'Armours/Gloves': 'Armours/Gauntlets',
+        'Armours/Boots': 'Armours/Footwear',
+        'Armours/Shields': 'Shields',
+        'Jewels': 'Jewellery',
+    };
+
+    return alternatives[currentCategory] || null;
 }
 
 function getCategoryFromSlot(slot) {
