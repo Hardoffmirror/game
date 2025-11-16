@@ -443,7 +443,15 @@ function getItemIcon(item) {
     // Для обычных/magic/rare предметов используем base_type
     let itemName = item.name;
     if (!isUnique && item.base_type) {
-        itemName = item.base_type;
+        // Проверяем что base_type не содержит "Crafted:" или другие служебные данные
+        if (!item.base_type.includes('Crafted:') && !item.base_type.includes(':')) {
+            itemName = item.base_type;
+        }
+    }
+
+    // Если имя все еще содержит недопустимые данные, скрываем иконку
+    if (!itemName || itemName.includes('Crafted:') || itemName === 'Unknown' || itemName.length < 2) {
+        return null;
     }
 
     // Создаем упрощенное имя для поиска изображения
@@ -453,6 +461,11 @@ function getItemIcon(item) {
         .replace(/[^\w\s-]/g, '')  // Убираем все кроме букв, цифр, пробелов и дефисов
         .replace(/\s+/g, '')  // Убираем все пробелы
         .replace(/-+/g, '');  // Убираем дефисы
+
+    // Проверка на пустое имя после очистки
+    if (!simplifiedName || simplifiedName.length < 2) {
+        return null;
+    }
 
     // Получаем категорию предмета
     const category = getItemCategory(item);
@@ -485,13 +498,37 @@ function getItemCategory(item) {
     if (slot.includes('body') || slot.includes('chest')) return 'Armours/BodyArmours';
     if (slot.includes('gloves')) return 'Armours/Gloves';
     if (slot.includes('boots')) return 'Armours/Boots';
-    if (slot.includes('weapon') || basetype.includes('sword') || basetype.includes('axe') ||
-        basetype.includes('mace') || basetype.includes('bow') || basetype.includes('wand') ||
-        basetype.includes('dagger') || basetype.includes('claw') || basetype.includes('sceptre')) {
+    if (slot.includes('quiver')) return 'Quivers';
+
+    // Shield проверка (до weapon, так как shield может быть в weapon slot)
+    if (slot.includes('shield') || basetype.includes('shield')) {
+        return 'Armours/Shields';
+    }
+
+    // Weapon - более детальная проверка
+    if (slot.includes('weapon') || slot.includes('weapon 1') || slot.includes('weapon 2')) {
+        // Проверяем конкретный тип оружия по base_type
+        if (basetype.includes('wand')) return 'Weapons/Wands';
+        if (basetype.includes('bow')) return 'Weapons/TwoHandWeapons';
+        if (basetype.includes('staff')) return 'Weapons/TwoHandWeapons';
+        if (basetype.includes('sword')) return 'Weapons/OneHandWeapons';
+        if (basetype.includes('axe')) return 'Weapons/OneHandWeapons';
+        if (basetype.includes('mace')) return 'Weapons/OneHandWeapons';
+        if (basetype.includes('dagger')) return 'Weapons/OneHandWeapons';
+        if (basetype.includes('claw')) return 'Weapons/OneHandWeapons';
+        if (basetype.includes('sceptre')) return 'Weapons/OneHandWeapons';
         return 'Weapons';
     }
-    if (slot.includes('shield')) return 'Armours/Shields';
-    if (slot.includes('quiver')) return 'Quivers';
+
+    // Дополнительная проверка по basetype для оружия
+    if (basetype.includes('wand')) return 'Weapons/Wands';
+    if (basetype.includes('sword') || basetype.includes('axe') || basetype.includes('mace') ||
+        basetype.includes('dagger') || basetype.includes('claw') || basetype.includes('sceptre')) {
+        return 'Weapons/OneHandWeapons';
+    }
+    if (basetype.includes('bow') || basetype.includes('staff')) {
+        return 'Weapons/TwoHandWeapons';
+    }
 
     return 'Currency';
 }
@@ -1057,7 +1094,10 @@ function handleImageError(img) {
 function getAlternativeCategory(currentCategory, slot) {
     // Возвращает альтернативные категории для разных типов предметов
     const alternatives = {
-        'Weapons': 'Weapons',
+        'Weapons/Wands': 'Weapons',
+        'Weapons/OneHandWeapons': 'Weapons',
+        'Weapons/TwoHandWeapons': 'Weapons',
+        'Weapons': 'Weapons/OneHandWeapons',
         'Armours/BodyArmours': 'Armours/BodyArmors',  // Американское написание
         'Armours/Helmets': 'Armours/Helms',
         'Armours/Gloves': 'Armours/Gauntlets',
@@ -1081,9 +1121,9 @@ function getCategoryFromSlot(slot) {
     if (slotLower.includes('body') || slotLower.includes('chest')) return 'Armours/BodyArmours';
     if (slotLower.includes('gloves')) return 'Armours/Gloves';
     if (slotLower.includes('boots')) return 'Armours/Boots';
-    if (slotLower.includes('weapon')) return 'Weapons';
     if (slotLower.includes('shield')) return 'Armours/Shields';
     if (slotLower.includes('quiver')) return 'Quivers';
+    if (slotLower.includes('weapon')) return 'Weapons';
 
     return 'Currency';
 }
