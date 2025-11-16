@@ -35,6 +35,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (data.success) {
+                // Debug: выводим полученные данные в консоль
+                console.log('📦 Полученные данные:', data.data);
+                console.log('📊 Статистика персонажа:', data.data.character_stats);
+                console.log('🔧 Build Info:', data.data.build_info);
+                if (data.data.build_info._all_build_attrs) {
+                    console.log('🔍 Все атрибуты Build элемента:', data.data.build_info._all_build_attrs);
+                }
                 displayResults(data.data);
             } else {
                 throw new Error(data.error || 'Неизвестная ошибка');

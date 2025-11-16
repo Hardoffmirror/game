@@ -85,6 +85,9 @@ class PoBParser:
         if build_elem is not None:
             # Сохраним все атрибуты для debug
             info['_all_build_attrs'] = dict(build_elem.attrib)
+            print(f"[DEBUG] Build элемент найден, количество атрибутов: {len(build_elem.attrib)}")
+            if len(build_elem.attrib) > 0:
+                print(f"[DEBUG] Примеры атрибутов Build: {list(build_elem.attrib.keys())[:10]}")
 
         return info
 
@@ -164,6 +167,22 @@ class PoBParser:
         if player_stat_root is not None:
             self._parse_player_stat(player_stat_root, stats)
 
+        # 4. Проверяем секцию Calcs (там хранятся рассчитанные значения)
+        calcs_section = self.root.find('.//Calcs')
+        if calcs_section is not None:
+            self._parse_player_stat(calcs_section, stats)
+
+        # 5. Проверяем все дочерние элементы Build
+        if build_elem is not None:
+            for child in build_elem:
+                self._parse_player_stat(child, stats)
+
+        # Debug: выводим найденные статы
+        print(f"[DEBUG] Извлеченная статистика персонажа:")
+        print(f"  Life: {stats['life']}, ES: {stats['es']}, Mana: {stats['mana']}")
+        print(f"  DPS: {stats['dps']}, Speed: {stats['speed']}")
+        print(f"  Resistances: {stats['resistances']}")
+
         return stats
 
     def _parse_player_stat(self, player_stat, stats):
@@ -175,37 +194,75 @@ class PoBParser:
             stats: Словарь для записи статистики
         """
         stat_map = {
+            # Life
             'Life': 'life',
             'Spec:Life': 'life',
             'TotalLife': 'life',
+            'MaxLife': 'life',
+
+            # Energy Shield
             'EnergyShield': 'es',
             'Spec:EnergyShield': 'es',
             'TotalEnergyShield': 'es',
+            'MaxEnergyShield': 'es',
+
+            # Mana
             'Mana': 'mana',
             'Spec:Mana': 'mana',
             'TotalMana': 'mana',
+            'MaxMana': 'mana',
+
+            # DPS (различные варианты)
             'TotalDPS': 'dps',
             'CombinedDPS': 'dps',
             'WithPoisonDPS': 'dps',
             'AverageDamage': 'dps',
+            'FullDPS': 'dps',
+            'TotalDot': 'dps',
+            'BleedDPS': 'dps',
+            'IgniteDPS': 'dps',
+            'PoisonDPS': 'dps',
+            'ImpaleDPS': 'dps',
+            'MirageDPS': 'dps',
+            'CullingDPS': 'dps',
+
+            # Attack/Cast Speed
             'Speed': 'speed',
             'HitSpeed': 'speed',
             'AttackRate': 'speed',
             'CastRate': 'speed',
+            'TrapThrowingTime': 'speed',
+            'MineLayingTime': 'speed',
+
+            # Hit & Crit
             'HitChance': 'hit_chance',
+            'Accuracy': 'hit_chance',
             'CritChance': 'crit_chance',
             'CritMultiplier': 'crit_multi',
+            'PreEffectiveCritChance': 'crit_chance',
+
+            # Resistances
             'FireResist': 'fire_resist',
             'ColdResist': 'cold_resist',
             'LightningResist': 'lightning_resist',
             'ChaosResist': 'chaos_resist',
+            'FireResistOverCap': 'fire_resist',
+            'ColdResistOverCap': 'cold_resist',
+            'LightningResistOverCap': 'lightning_resist',
+            'ChaosResistOverCap': 'chaos_resist',
+
+            # Defence
             'EvadeChance': 'evade_chance',
             'Evasion': 'evade_chance',
+            'BlockChance': 'evade_chance',
+            'SpellBlockChance': 'evade_chance',
         }
 
         # Перебираем все атрибуты PlayerStat
+        matched_attrs = []
         for attr_name, attr_value in player_stat.attrib.items():
             if attr_name in stat_map:
+                matched_attrs.append(attr_name)
                 field = stat_map[attr_name]
                 try:
                     # Пытаемся преобразовать в число
@@ -235,6 +292,10 @@ class PoBParser:
                         stats['evade_chance'] = int(value)
                 except (ValueError, AttributeError):
                     pass
+
+        # Debug: выводим что нашли в этом элементе
+        if matched_attrs:
+            print(f"[DEBUG] Найдены атрибуты в {player_stat.tag}: {matched_attrs}")
 
     def get_items(self) -> Dict[str, List[Dict]]:
         """
