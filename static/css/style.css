@@ -190,32 +190,27 @@ header h1 {
     font-size: 0.8rem;
 }
 
-.build-info {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 100;
-    background: linear-gradient(145deg, var(--bg-card), #151515);
-    padding: 10px 14px;
-    border-radius: 8px;
-    border: 2px solid var(--accent);
-    box-shadow: 0 6px 20px var(--shadow);
-    max-width: 260px;
-    backdrop-filter: blur(10px);
+.build-stats-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 25px;
 }
 
-.item-stats {
-    position: fixed;
-    top: 20px;
-    left: 20px;
-    z-index: 100;
+.build-info-inline {
     background: linear-gradient(145deg, var(--bg-card), #151515);
-    padding: 10px 14px;
+    padding: 15px;
     border-radius: 8px;
     border: 2px solid var(--accent);
-    box-shadow: 0 6px 20px var(--shadow);
-    max-width: 280px;
-    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 12px var(--shadow);
+}
+
+.item-stats-inline {
+    background: linear-gradient(145deg, var(--bg-card), #151515);
+    padding: 15px;
+    border-radius: 8px;
+    border: 2px solid var(--accent);
+    box-shadow: 0 4px 12px var(--shadow);
 }
 
 .build-info-compact {
@@ -538,8 +533,8 @@ header h1 {
 }
 
 .gem-name {
-    color: var(--rarity-gem);
     font-weight: 500;
+    /* Цвет устанавливается динамически через inline style */
 }
 
 .gem-details {
@@ -548,11 +543,7 @@ header h1 {
     margin-top: 2px;
 }
 
-/* Цвета камней по типу */
-.gem-item.strength { border-left: 3px solid #ff4444; }
-.gem-item.dexterity { border-left: 3px solid #44ff44; }
-.gem-item.intelligence { border-left: 3px solid #4444ff; }
-.gem-item.support { border-left: 3px solid #ffaa44; }
+/* Удалены старые классы камней - цвет теперь применяется напрямую через style */
 
 /* Пустые секции */
 .empty-message {
@@ -748,7 +739,7 @@ header h1 {
 }
 
 .item-gems .gem-name {
-    font-weight: 500;
+    font-weight: 600;
 }
 
 .item-gems .gem-details {
@@ -789,6 +780,11 @@ header h1 {
     .items-grid,
     .gems-container {
         grid-template-columns: 1fr;
+    }
+
+    .build-stats-container {
+        grid-template-columns: 1fr;
+        gap: 15px;
     }
 
     header h1 {

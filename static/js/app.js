@@ -262,20 +262,25 @@ function displayItems(items, containerId, gemsBySlot = {}) {
 }
 
 function getItemIcon(item) {
-    // Базовый путь к картинкам на PoE CDN
-    const basePath = 'https://web.poecdn.com/gen/image/';
-
-    // Для уникальных предметов можно попробовать получить изображение
+    // Отображаем иконки только для уникальных предметов и фласок
     if (!item.name) return null;
+
+    const isUnique = item.rarity && item.rarity.toLowerCase().includes('unique');
+    const isFlask = item.slot && item.slot.toLowerCase().includes('flask');
+
+    // Показываем иконки только для уникальных предметов и уникальных фласок
+    if (!isUnique && !isFlask) return null;
 
     // Создаем упрощенное имя для поиска изображения
     const simplifiedName = item.name
         .toLowerCase()
-        .replace(/[^a-z0-9\s]/g, '')
-        .replace(/\s+/g, '-');
+        .replace(/['']/g, '')  // Убираем апострофы
+        .replace(/[^a-z0-9\s]/g, '')  // Убираем все не-буквенно-цифровые символы кроме пробелов
+        .replace(/\s+/g, '')  // Убираем все пробелы
+        .replace(/^the/, '');  // Убираем "the" в начале
 
-    // Пытаемся создать URL для изображения (это приблизительная логика)
-    return `https://web.poecdn.com/image/Art/2DItems/${getItemCategory(item)}/${simplifiedName}.png`;
+    // Пытаемся создать URL для изображения
+    return `https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvRmxhc2tzLyR7c2ltcGxpZmllZE5hbWV9IiwidyI6MSwiaCI6MSwic2NhbGUiOjF9XQ/item.png`;
 }
 
 function getItemCategory(item) {
@@ -465,13 +470,9 @@ function createItemCard(item, gemsBySlot = {}) {
         </div>`
         : '';
 
-    // Иконка предмета
-    const itemIcon = getItemIcon(item);
-    const itemIconHtml = itemIcon ? `
-        <div class="item-icon-wrapper">
-            <img src="${itemIcon}" class="item-icon" alt="${escapeHtml(item.name)}" onerror="this.parentElement.style.display='none'">
-        </div>
-    ` : '';
+    // Иконка предмета (временно отключена из-за проблем с URL)
+    // const itemIcon = getItemIcon(item);
+    const itemIconHtml = '';  // Отключено до реализации правильного API
 
     // Отображаем камни для этого предмета
     const gemsHtml = itemGems.length > 0 ? createGemsDisplay(itemGems) : '';
@@ -518,8 +519,8 @@ function createGemsDisplay(gemGroups) {
             const gemColor = getGemColor(gem.nameSpec);
 
             return `
-                <div class="gem-item copyable" style="color: ${gemColor};" onclick="copyToClipboard('${escapeForAttribute(gem.nameSpec)}')" title="Нажмите, чтобы скопировать">
-                    <span class="gem-name">${escapeHtml(gem.nameSpec)}</span>
+                <div class="gem-item copyable" onclick="copyToClipboard('${escapeForAttribute(gem.nameSpec)}')" title="Нажмите, чтобы скопировать">
+                    <span class="gem-name" style="color: ${gemColor};">${escapeHtml(gem.nameSpec)}</span>
                     <span class="gem-details">${details}</span>
                 </div>
             `;
