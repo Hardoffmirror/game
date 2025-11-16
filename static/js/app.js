@@ -80,11 +80,8 @@ function hideResults() {
 }
 
 function displayResults(data) {
-    // Информация о билде
-    displayBuildInfo(data.build_info);
-
-    // Статистика предметов
-    displayItemStats(data);
+    // Объединенная информация о билде и статистика
+    displayBuildInfoAndStats(data);
 
     // Создаем карту камней по слотам
     const gemsBySlot = {};
@@ -110,25 +107,15 @@ function displayResults(data) {
     showResults();
 }
 
-function displayBuildInfo(buildInfo) {
-    const buildInfoDiv = document.getElementById('buildInfo');
+function displayBuildInfoAndStats(data) {
+    const buildInfo = data.build_info;
+    const unifiedDiv = document.getElementById('buildInfoStats');
 
     // Создаем URL для картинки подкласса
     const ascendancyImage = getAscendancyImage(buildInfo.ascendClassName);
 
-    buildInfoDiv.innerHTML = `
-        <div class="build-info-compact">
-            ${ascendancyImage ? `<img src="${ascendancyImage}" class="ascendancy-icon" alt="${escapeHtml(buildInfo.ascendClassName)}" onerror="this.style.display='none'">` : ''}
-            <div class="build-info-text">
-                <div class="build-class">${escapeHtml(buildInfo.className)}${buildInfo.ascendClassName && buildInfo.ascendClassName !== 'None' ? ` - ${escapeHtml(buildInfo.ascendClassName)}` : ''}</div>
-                <div class="build-level">Уровень ${escapeHtml(buildInfo.level)}</div>
-            </div>
-        </div>
-    `;
-}
-
-function displayItemStats(data) {
-    const statsDiv = document.getElementById('itemStats');
+    // Получаем URL картинки класса
+    const classImage = getClassImage(buildInfo.className);
 
     // Подсчитываем статистику
     const stats = {
@@ -165,57 +152,80 @@ function displayItemStats(data) {
     countItems(data.jewels, 'jewels');
     countItems(data.flasks, 'flasks');
 
-    statsDiv.innerHTML = `
-        <div class="stats-compact">
-            <div class="stats-title">📊 Статистика</div>
-            <div class="stats-content">
-                <div class="stat-row stat-total">
-                    <span class="stat-label">Всего предметов:</span>
-                    <span class="stat-value">${stats.total.total}</span>
+    // Объединенная верстка
+    unifiedDiv.innerHTML = `
+        <div class="build-info-stats-combined">
+            <div class="build-header">
+                <div class="class-images">
+                    ${classImage ? `<img src="${classImage}" class="class-icon" alt="${escapeHtml(buildInfo.className)}" onerror="this.style.display='none'">` : ''}
+                    ${ascendancyImage ? `<img src="${ascendancyImage}" class="ascendancy-icon-large" alt="${escapeHtml(buildInfo.ascendClassName)}" onerror="this.style.display='none'">` : ''}
                 </div>
-                ${stats.total.unique > 0 ? `
-                <div class="stat-row">
-                    <span class="stat-label rarity-unique-text">Уникальных:</span>
-                    <span class="stat-value">${stats.total.unique}</span>
+                <div class="build-details">
+                    <div class="build-class-name">${escapeHtml(buildInfo.className)}${buildInfo.ascendClassName && buildInfo.ascendClassName !== 'None' ? ` - ${escapeHtml(buildInfo.ascendClassName)}` : ''}</div>
+                    <div class="build-level-info">Уровень ${escapeHtml(buildInfo.level)}</div>
                 </div>
-                ` : ''}
-                ${stats.total.rare > 0 ? `
-                <div class="stat-row">
-                    <span class="stat-label rarity-rare-text">Редких:</span>
-                    <span class="stat-value">${stats.total.rare}</span>
-                </div>
-                ` : ''}
-                <div class="stats-divider"></div>
-                ${stats.equipment.total > 0 ? `
-                <div class="stat-group">
-                    <div class="stat-row">
+            </div>
+            <div class="stats-section">
+                <div class="stats-title">📊 Статистика предметов</div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-label">Всего:</span>
+                        <span class="stat-value">${stats.total.total}</span>
+                    </div>
+                    ${stats.total.unique > 0 ? `
+                    <div class="stat-item">
+                        <span class="stat-label rarity-unique-text">Уникальных:</span>
+                        <span class="stat-value">${stats.total.unique}</span>
+                    </div>
+                    ` : ''}
+                    ${stats.total.rare > 0 ? `
+                    <div class="stat-item">
+                        <span class="stat-label rarity-rare-text">Редких:</span>
+                        <span class="stat-value">${stats.total.rare}</span>
+                    </div>
+                    ` : ''}
+                    ${stats.equipment.total > 0 ? `
+                    <div class="stat-item">
                         <span class="stat-label">⚔️ Экипировка:</span>
                         <span class="stat-value">${stats.equipment.total}</span>
                     </div>
-                    ${stats.equipment.unique > 0 ? `<div class="stat-sub">Уникальных: ${stats.equipment.unique}</div>` : ''}
-                </div>
-                ` : ''}
-                ${stats.jewels.total > 0 ? `
-                <div class="stat-group">
-                    <div class="stat-row">
+                    ` : ''}
+                    ${stats.jewels.total > 0 ? `
+                    <div class="stat-item">
                         <span class="stat-label">💎 Самоцветы:</span>
                         <span class="stat-value">${stats.jewels.total}</span>
                     </div>
-                    ${stats.jewels.unique > 0 ? `<div class="stat-sub">Уникальных: ${stats.jewels.unique}</div>` : ''}
-                </div>
-                ` : ''}
-                ${stats.flasks.total > 0 ? `
-                <div class="stat-group">
-                    <div class="stat-row">
+                    ` : ''}
+                    ${stats.flasks.total > 0 ? `
+                    <div class="stat-item">
                         <span class="stat-label">🧪 Фласки:</span>
                         <span class="stat-value">${stats.flasks.total}</span>
                     </div>
-                    ${stats.flasks.unique > 0 ? `<div class="stat-sub">Уникальных: ${stats.flasks.unique}</div>` : ''}
+                    ` : ''}
                 </div>
-                ` : ''}
             </div>
         </div>
     `;
+}
+
+function getClassImage(className) {
+    if (!className) return null;
+
+    // Маппинг классов к их иконкам
+    const classMap = {
+        'Marauder': 'Marauder',
+        'Ranger': 'Ranger',
+        'Witch': 'Witch',
+        'Duelist': 'Duelist',
+        'Templar': 'Templar',
+        'Shadow': 'Shadow',
+        'Scion': 'Scion'
+    };
+
+    const imageName = classMap[className];
+    if (!imageName) return null;
+
+    return `https://web.poecdn.com/image/Art/2DArt/UIImages/InGame/CharacterPanel/${imageName}.png`;
 }
 
 function getAscendancyImage(ascendClassName) {
@@ -262,25 +272,29 @@ function displayItems(items, containerId, gemsBySlot = {}) {
 }
 
 function getItemIcon(item) {
-    // Отображаем иконки только для уникальных предметов и фласок
+    // Отображаем иконки для уникальных предметов и всех фласок
     if (!item.name) return null;
 
     const isUnique = item.rarity && item.rarity.toLowerCase().includes('unique');
     const isFlask = item.slot && item.slot.toLowerCase().includes('flask');
 
-    // Показываем иконки только для уникальных предметов и уникальных фласок
+    // Показываем иконки для уникальных предметов и всех фласок
     if (!isUnique && !isFlask) return null;
 
     // Создаем упрощенное имя для поиска изображения
-    const simplifiedName = item.name
-        .toLowerCase()
-        .replace(/['']/g, '')  // Убираем апострофы
-        .replace(/[^a-z0-9\s]/g, '')  // Убираем все не-буквенно-цифровые символы кроме пробелов
-        .replace(/\s+/g, '')  // Убираем все пробелы
-        .replace(/^the/, '');  // Убираем "the" в начале
+    let simplifiedName = item.name
+        .replace(/^The\s+/i, '')  // Убираем "The" в начале
+        .replace(/[''`´]/g, '')  // Убираем апострофы и подобные символы
+        .replace(/[^a-zA-Z0-9\s-]/g, '')  // Убираем все кроме букв, цифр, пробелов и дефисов
+        .replace(/\s+/g, '');  // Убираем пробелы
 
-    // Пытаемся создать URL для изображения
-    return `https://web.poecdn.com/gen/image/WzI1LDE0LHsiZiI6IjJESXRlbXMvRmxhc2tzLyR7c2ltcGxpZmllZE5hbWV9IiwidyI6MSwiaCI6MSwic2NhbGUiOjF9XQ/item.png`;
+    // Получаем категорию предмета
+    const category = getItemCategory(item);
+
+    // Формируем URL для изображения
+    const imageUrl = `https://web.poecdn.com/image/Art/2DItems/${category}/${simplifiedName}.png`;
+
+    return imageUrl;
 }
 
 function getItemCategory(item) {
@@ -334,10 +348,6 @@ function createItemCard(item, gemsBySlot = {}) {
 
     if (item.properties) {
         Object.entries(item.properties).forEach(([key, value]) => {
-            // Пропускаем Unique ID
-            if (key === 'Unique ID') {
-                return;
-            }
             // Извлекаем уровень предмета
             if (key === 'Item Level') {
                 itemLevel = value;
@@ -470,9 +480,13 @@ function createItemCard(item, gemsBySlot = {}) {
         </div>`
         : '';
 
-    // Иконка предмета (временно отключена из-за проблем с URL)
-    // const itemIcon = getItemIcon(item);
-    const itemIconHtml = '';  // Отключено до реализации правильного API
+    // Иконка предмета
+    const itemIcon = getItemIcon(item);
+    const itemIconHtml = itemIcon ? `
+        <div class="item-icon-wrapper">
+            <img src="${itemIcon}" class="item-icon" alt="${escapeHtml(item.name)}" onerror="this.parentElement.style.display='none'">
+        </div>
+    ` : '';
 
     // Отображаем камни для этого предмета
     const gemsHtml = itemGems.length > 0 ? createGemsDisplay(itemGems) : '';
@@ -763,11 +777,11 @@ function createSocketsDisplay(socketsString) {
     // Формат: "R-G-B G-G-G" или "R-R-G"
     // R=Red, G=Green, B=Blue, W=White, A=Abyss
     const socketColors = {
-        'R': '#ff4444',  // Red
-        'G': '#44ff44',  // Green
-        'B': '#4444ff',  // Blue
-        'W': '#ffffff',  // White
-        'A': '#00ff88'   // Abyss (зеленоватый)
+        'R': '#ff3333',  // Red (Strength) - яркий насыщенный красный
+        'G': '#00ff00',  // Green (Dexterity) - яркий насыщенный зеленый
+        'B': '#4466ff',  // Blue (Intelligence) - яркий синий
+        'W': '#ffffff',  // White - белый
+        'A': '#1eff00'   // Abyss - яркий изумрудно-зеленый
     };
 
     const groups = socketsString.split(' ');
@@ -775,7 +789,7 @@ function createSocketsDisplay(socketsString) {
         const sockets = group.split('-');
         const socketsHtml = sockets.map(socket => {
             const color = socketColors[socket] || '#888888';
-            return `<span class="socket" style="background-color: ${color};" title="${socket}"></span>`;
+            return `<span class="socket" style="background-color: ${color}; box-shadow: 0 0 6px ${color};" title="${socket}"></span>`;
         }).join('<span class="socket-link"></span>');
 
         return `<div class="socket-group">${socketsHtml}</div>`;

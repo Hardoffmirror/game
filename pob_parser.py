@@ -371,15 +371,21 @@ class PoBParser:
                 continue
 
             # Свойства (Physical Damage, Elemental Damage, Critical Strike Chance, etc.)
+            # Unique ID не добавляется в properties - это внутренний идентификатор
             if ':' in line and any(kw in line for kw in [
                 'Physical Damage:', 'Elemental Damage:', 'Chaos Damage:',
                 'Critical Strike Chance:', 'Attacks per Second:', 'Weapon Range:',
                 'Armour:', 'Evasion Rating:', 'Energy Shield:', 'Ward:',
                 'Block:', 'Quality:', 'Sockets:', 'Item Level:',
-                'Unique ID:', 'Radius:', 'Limited to:'
+                'Radius:', 'Limited to:'
             ]) and not line.startswith('{'):
                 key, value = line.split(':', 1)
                 properties[key.strip()] = value.strip()
+                i += 1
+                continue
+
+            # Пропускаем Unique ID
+            if line.startswith('Unique ID:'):
                 i += 1
                 continue
 
