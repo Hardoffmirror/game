@@ -443,19 +443,35 @@ function getItemIcon(item) {
     // Для обычных/magic/rare предметов используем base_type
     let itemName = item.name;
     if (!isUnique && item.base_type) {
-        // Проверяем что base_type не содержит "Crafted:" или другие служебные данные
-        if (!item.base_type.includes('Crafted:') && !item.base_type.includes(':')) {
-            itemName = item.base_type;
+        // Проверяем что base_type не содержит "Crafted:", ":" или другие служебные данные
+        const baseType = String(item.base_type).trim();
+        if (baseType &&
+            !baseType.includes('Crafted:') &&
+            !baseType.includes('Crafted') &&
+            !baseType.match(/^[^:]+:\s*/) &&  // Проверка на паттерн "Key: Value"
+            baseType !== 'true' &&
+            baseType !== 'false' &&
+            baseType.length > 2) {
+            itemName = baseType;
         }
     }
 
-    // Если имя все еще содержит недопустимые данные, скрываем иконку
-    if (!itemName || itemName.includes('Crafted:') || itemName === 'Unknown' || itemName.length < 2) {
+    // Список недопустимых placeholder имен из Path of Building
+    const invalidNames = ['Unknown', 'New Item', 'NewItem', 'Crafted', 'None', 'null', 'undefined'];
+    const itemNameUpper = String(itemName).trim();
+
+    // Если имя содержит недопустимые данные, скрываем иконку
+    if (!itemName ||
+        itemName.length < 2 ||
+        invalidNames.includes(itemNameUpper) ||
+        itemName.includes('Crafted:') ||
+        itemName.match(/^(true|false)$/i) ||
+        itemName.match(/^[^:]+:\s*(true|false)/i)) {  // Проверка на "Key: true/false"
         return null;
     }
 
     // Создаем упрощенное имя для поиска изображения
-    let simplifiedName = itemName
+    let simplifiedName = String(itemName)
         .replace(/^The\s+/i, '')  // Убираем "The" в начале
         .replace(/[''`´']/g, '')  // Убираем все виды апострофов
         .replace(/[^\w\s-]/g, '')  // Убираем все кроме букв, цифр, пробелов и дефисов
@@ -470,7 +486,7 @@ function getItemIcon(item) {
     // Получаем категорию предмета
     const category = getItemCategory(item);
 
-    // Формируем URL для изображения
+    // Формируем URL для изображения (ВСЕГДА с https://)
     const imageUrl = `https://web.poecdn.com/image/Art/2DItems/${category}/${simplifiedName}.png`;
 
     return imageUrl;
@@ -1028,10 +1044,19 @@ function handleImageError(img) {
     const baseType = img.dataset.baseType || '';
     const slot = img.dataset.slot || '';
 
+    // Валидация: проверяем на placeholder имена
+    const invalidNames = ['Unknown', 'New Item', 'NewItem', 'Crafted', 'None', 'null', 'undefined', 'true', 'false'];
+    if (invalidNames.includes(itemName) || invalidNames.includes(baseType)) {
+        img.parentElement.style.display = 'none';
+        return;
+    }
+
     // Если уже пробовали все варианты, скрываем иконку
     if (img.dataset.attempt && parseInt(img.dataset.attempt) >= 5) {
         img.parentElement.style.display = 'none';
-        console.log(`[Image Error] Все попытки исчерпаны для: ${itemName || baseType}`);
+        if (console.debug) {
+            console.debug(`[Image] No valid image found for: ${itemName || baseType} (slot: ${slot})`);
+        }
         return;
     }
 
@@ -1041,52 +1066,60 @@ function handleImageError(img) {
 
     const category = getCategoryFromSlot(slot);
 
-    // Пробуем разные варианты
-    if (attempt === 1 && baseType && baseType !== itemName) {
-        // Попытка 1: base_type
-        const simplifiedBase = baseType
+    // Функция для создания безопасного имени файла
+    const sanitizeName = (name) => {
+        if (!name || typeof name !== 'string') return '';
+        return String(name)
             .replace(/^The\s+/i, '')
             .replace(/[''`´']/g, '')
             .replace(/[^\w\s-]/g, '')
             .replace(/\s+/g, '')
             .replace(/-+/g, '');
+    };
 
-        img.src = `https://web.poecdn.com/image/Art/2DItems/${category}/${simplifiedBase}.png`;
+    let newUrl = null;
+
+    // Пробуем разные варианты
+    if (attempt === 1 && baseType && baseType !== itemName && !baseType.includes(':')) {
+        // Попытка 1: base_type (если он отличается от имени и не содержит служебные символы)
+        const simplifiedBase = sanitizeName(baseType);
+        if (simplifiedBase && simplifiedBase.length > 2) {
+            newUrl = `https://web.poecdn.com/image/Art/2DItems/${category}/${simplifiedBase}.png`;
+        }
     } else if (attempt === 2) {
         // Попытка 2: только латинские буквы и цифры, без спецсимволов
         const cleanName = (baseType || itemName)
             .replace(/^The\s+/i, '')
             .replace(/[^a-zA-Z0-9]/g, '');
-
-        img.src = `https://web.poecdn.com/image/Art/2DItems/${category}/${cleanName}.png`;
+        if (cleanName && cleanName.length > 2) {
+            newUrl = `https://web.poecdn.com/image/Art/2DItems/${category}/${cleanName}.png`;
+        }
     } else if (attempt === 3) {
         // Попытка 3: базовый тип для unique предметов
-        if (baseType) {
+        if (baseType && !baseType.includes(':')) {
             const baseClean = baseType
                 .replace(/[^a-zA-Z0-9\s]/g, '')
                 .replace(/\s+/g, '');
-            img.src = `https://web.poecdn.com/image/Art/2DItems/${category}/${baseClean}.png`;
-        } else {
-            img.dataset.attempt = '5'; // Пропускаем остальные попытки
-            img.parentElement.style.display = 'none';
+            if (baseClean && baseClean.length > 2) {
+                newUrl = `https://web.poecdn.com/image/Art/2DItems/${category}/${baseClean}.png`;
+            }
         }
     } else if (attempt === 4) {
         // Попытка 4: пробуем альтернативные категории
         const altCategory = getAlternativeCategory(category, slot);
         if (altCategory && altCategory !== category) {
-            const simplifiedName = (itemName || baseType)
-                .replace(/^The\s+/i, '')
-                .replace(/[''`´']/g, '')
-                .replace(/[^\w\s-]/g, '')
-                .replace(/\s+/g, '')
-                .replace(/-+/g, '');
-            img.src = `https://web.poecdn.com/image/Art/2DItems/${altCategory}/${simplifiedName}.png`;
-        } else {
-            img.dataset.attempt = '5'; // Пропускаем остальные попытки
-            img.parentElement.style.display = 'none';
+            const simplifiedName = sanitizeName(itemName || baseType);
+            if (simplifiedName && simplifiedName.length > 2) {
+                newUrl = `https://web.poecdn.com/image/Art/2DItems/${altCategory}/${simplifiedName}.png`;
+            }
         }
+    }
+
+    // Если сформировали новый URL, пробуем его
+    if (newUrl) {
+        img.src = newUrl;
     } else {
-        // Скрываем иконку после всех попыток
+        // Нет больше вариантов - скрываем иконку
         img.parentElement.style.display = 'none';
     }
 }
