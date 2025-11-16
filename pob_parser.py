@@ -1008,7 +1008,7 @@ class PoBParser:
 
         return {
             'build_info': self.get_build_info(),
-            'character_stats': self.get_character_stats(),
+            'character_stats': self.calculate_character_stats(),  # ИСПРАВЛЕНО: используем расчётную функцию
             'equipment': items['equipment'],
             'jewels': items['jewels'],
             'flasks': items['flasks'],

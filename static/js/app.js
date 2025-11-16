@@ -238,67 +238,78 @@ function createCharacterStatsHtml(stats) {
     // Создаем строки статистики
     const statLines = [];
 
-    // Life
-    if (stats.life) {
-        statLines.push(`Life: ${stats.life}`);
+    // Life (поддержка обоих форматов: stats.life и stats.life из расчётов)
+    const life = stats.life;
+    if (life && life > 0) {
+        statLines.push(`❤️ Life: ${formatNumber(life)}`);
     }
 
-    // ES
-    if (stats.es) {
-        statLines.push(`ES: ${stats.es}`);
+    // ES (energy_shield из расчётов или es из XML)
+    const es = stats.energy_shield || stats.es;
+    if (es && es > 0) {
+        statLines.push(`🛡️ Energy Shield: ${formatNumber(es)}`);
     }
 
     // Mana
-    if (stats.mana) {
-        statLines.push(`Mana: ${stats.mana}`);
+    const mana = stats.mana;
+    if (mana && mana > 0) {
+        statLines.push(`✨ Mana: ${formatNumber(mana)}`);
     }
 
-    // eHP
-    if (stats.ehp) {
-        statLines.push(`eHP: ${formatNumber(stats.ehp)}`);
+    // Armour
+    const armour = stats.armour;
+    if (armour && armour > 0) {
+        statLines.push(`🔰 Armour: ${formatNumber(armour)}`);
+    }
+
+    // Evasion
+    const evasion = stats.evasion;
+    if (evasion && evasion > 0) {
+        statLines.push(`💨 Evasion: ${formatNumber(evasion)}`);
     }
 
     // Resistances
     if (stats.resistances) {
         const resists = stats.resistances;
-        if (resists.fire || resists.cold || resists.lightning || resists.chaos) {
+        if (resists.fire !== undefined || resists.cold !== undefined ||
+            resists.lightning !== undefined || resists.chaos !== undefined) {
             const resistParts = [];
-            if (resists.fire) resistParts.push(`Fire ${resists.fire}%`);
-            if (resists.cold) resistParts.push(`Cold ${resists.cold}%`);
-            if (resists.lightning) resistParts.push(`Lightning ${resists.lightning}%`);
-            if (resists.chaos) resistParts.push(`Chaos ${resists.chaos}%`);
+            if (resists.fire !== undefined) resistParts.push(`🔥 ${resists.fire}%`);
+            if (resists.cold !== undefined) resistParts.push(`❄️ ${resists.cold}%`);
+            if (resists.lightning !== undefined) resistParts.push(`⚡ ${resists.lightning}%`);
+            if (resists.chaos !== undefined) resistParts.push(`☠️ ${resists.chaos}%`);
             statLines.push(`Resistances: ${resistParts.join(' | ')}`);
         }
     }
 
-    // Evade
-    if (stats.evade_chance) {
-        statLines.push(`Evade: ${stats.evade_chance}%`);
+    // Crit Chance (поддержка обоих форматов)
+    const critChance = stats.crit_chance;
+    if (critChance && critChance > 0) {
+        statLines.push(`🎯 Crit Chance: ${critChance.toFixed(1)}%`);
     }
 
-    // DPS
-    if (stats.dps) {
-        statLines.push(`DPS: ${formatNumber(stats.dps)}`);
+    // Crit Multi (поддержка обоих форматов)
+    const critMulti = stats.crit_multiplier || stats.crit_multi;
+    if (critMulti && critMulti > 0) {
+        statLines.push(`💥 Crit Multi: ${critMulti.toFixed(0)}%`);
     }
 
-    // Speed
-    if (stats.speed) {
-        statLines.push(`Speed: ${stats.speed}`);
+    // Attack Speed
+    const attackSpeed = stats.attack_speed;
+    if (attackSpeed && attackSpeed > 0) {
+        statLines.push(`⚔️ Attack Speed: ${attackSpeed.toFixed(2)}`);
     }
 
-    // Hit Chance
-    if (stats.hit_chance) {
-        statLines.push(`Hit Chance: ${stats.hit_chance}%`);
+    // Cast Speed
+    const castSpeed = stats.cast_speed;
+    if (castSpeed && castSpeed > 0) {
+        statLines.push(`🔮 Cast Speed: ${castSpeed.toFixed(2)}`);
     }
 
-    // Crit Chance
-    if (stats.crit_chance) {
-        statLines.push(`Crit: ${stats.crit_chance}%`);
-    }
-
-    // Crit Multi
-    if (stats.crit_multi) {
-        statLines.push(`Crit Multi: ${stats.crit_multi}%`);
+    // DPS Estimate
+    const dps = stats.dps_estimate || stats.dps;
+    if (dps && dps > 0) {
+        statLines.push(`⚡ DPS: ${formatNumber(dps)}`);
     }
 
     if (statLines.length === 0) {
@@ -307,10 +318,8 @@ function createCharacterStatsHtml(stats) {
             <div class="character-stats-section">
                 <div class="stats-title">⚔️ Статистика персонажа</div>
                 <div class="char-stat-item" style="font-style: italic; color: #999; line-height: 1.6;">
-                    ℹ️ Path of Building не экспортирует вычисленную статистику (DPS, Life, сопротивления и т.д.) в код билда.<br>
-                    Эти данные рассчитываются в реальном времени при открытии билда в PoB.<br>
-                    <br>
-                    <strong>Для просмотра статистики:</strong> Откройте билд в Path of Building.
+                    ℹ️ Статистика рассчитывается на основе предметов билда.<br>
+                    Для более точной статистики откройте билд в Path of Building.
                 </div>
             </div>
         `;
@@ -320,7 +329,7 @@ function createCharacterStatsHtml(stats) {
         <div class="character-stats-section">
             <div class="stats-title">⚔️ Статистика персонажа</div>
             <div class="character-stats-grid">
-                ${statLines.map(line => `<div class="char-stat-item">${escapeHtml(line)}</div>`).join('')}
+                ${statLines.map(line => `<div class="char-stat-item">${line}</div>`).join('')}
             </div>
         </div>
     `;
@@ -785,7 +794,7 @@ function getGemColor(gemName) {
 
     // Support gems (обычно белые или с оттенком)
     if (nameLower.includes('support') || nameLower.includes('awakened')) {
-        return '#88ddff';  // Яркий голубой для support
+        return '#8CF';  // Голубой для support
     }
 
     // Красные (Strength) камни - физический урон, огонь, ближний бой
@@ -826,17 +835,17 @@ function getGemColor(gemName) {
 
     // Проверяем ключевые слова для красных
     for (const keyword of redKeywords) {
-        if (nameLower.includes(keyword)) return '#ff4444';  // Яркий красный
+        if (nameLower.includes(keyword)) return '#D02020';  // Насыщенный красный как в PoE
     }
 
     // Проверяем ключевые слова для зеленых
     for (const keyword of greenKeywords) {
-        if (nameLower.includes(keyword)) return '#44ff44';  // Яркий зеленый
+        if (nameLower.includes(keyword)) return '#0D0';  // Насыщенный зелёный как в PoE
     }
 
     // Проверяем ключевые слова для синих
     for (const keyword of blueKeywords) {
-        if (nameLower.includes(keyword)) return '#4488ff';  // Яркий синий
+        if (nameLower.includes(keyword)) return '#4AF';  // Насыщенный синий как в PoE
     }
 
     // По умолчанию белый (для гибридных и неизвестных)
@@ -1017,11 +1026,11 @@ function createSocketsDisplay(socketsString) {
     // Формат: "R-G-B G-G-G" или "R-R-G"
     // R=Red, G=Green, B=Blue, W=White, A=Abyss
     const socketColors = {
-        'R': '#ff3333',  // Red (Strength) - яркий насыщенный красный
-        'G': '#00ff00',  // Green (Dexterity) - яркий насыщенный зеленый
-        'B': '#4466ff',  // Blue (Intelligence) - яркий синий
-        'W': '#ffffff',  // White - белый
-        'A': '#1eff00'   // Abyss - яркий изумрудно-зеленый
+        'R': '#D02020',  // Red (Strength) - насыщенный красный как в PoE
+        'G': '#0D0',     // Green (Dexterity) - насыщенный зелёный как в PoE
+        'B': '#4AF',     // Blue (Intelligence) - насыщенный синий как в PoE
+        'W': '#FFF',     // White - белый
+        'A': '#0E0'      // Abyss - изумрудно-зеленый
     };
 
     const groups = socketsString.split(' ');
