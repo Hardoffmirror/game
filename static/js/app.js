@@ -1034,7 +1034,8 @@ function getGemColor(gemName) {
             'war banner', 'damage on full life', 'chance to flee', 'reduced mana',
             'inspiration', 'second wind', 'eternal blessing',
             'weapon elemental damage', 'immolate', 'unbound ailments',
-            'fire mastery', 'burning ground', 'concentrated', 'heavy strike'];
+            'fire mastery', 'burning ground', 'concentrated', 'heavy strike',
+            'bloodthirst', 'carnage', 'devastation', 'rampage'];
 
 
         // Зеленые support gems (Dexterity)
@@ -1054,7 +1055,8 @@ function getGemColor(gemName) {
             'awakened added chaos', 'venom', 'poison', 'chaos', 'void',
             'arrow', 'bow', 'dagger', 'claw',
             'blind', 'chance to flee', 'item rarity', 'life gain on hit',
-            'projectile mastery', 'chaos mastery', 'wind', 'precision'];
+            'projectile mastery', 'chaos mastery', 'wind', 'precision',
+            'momentum', 'impetus', 'ambush', 'stealth'];
 
         // Синие support gems (Intelligence)
         const blueSupports = ['spell echo', 'unleash', 'intensify', 'spell cascade',
@@ -1077,7 +1079,8 @@ function getGemColor(gemName) {
             'curse', 'hex', 'wand', 'staff', 'cast on death',
             'less duration', 'increased critical damage', 'ice bite', 'onslaught',
             'life leech', 'multiple totems',
-            'cold mastery', 'lightning mastery', 'elemental focus', 'arcane'];
+            'cold mastery', 'lightning mastery', 'elemental focus', 'arcane',
+            'frostblink', 'spellslinger', 'arcanist', 'trinity'];
 
         // Проверяем тип support
         for (const keyword of redSupports) {
@@ -1100,7 +1103,7 @@ function getGemColor(gemName) {
         'molten', 'burning', 'flame', 'infernal', 'magma', 'volcanic',
         'righteous fire', 'scorching ray', 'purifying flame', 'flame dash',
         'flame surge', 'incinerate', 'searing bond', 'flamethrower',
-        'fire', 'combust', 'immolate', 'ignite',
+        'fire', 'combust', 'immolate', 'ignite', '炎', 'pyroclast',
         // Ауры и баффы
         'anger', 'determination', 'vitality', 'purity of fire', 'herald of ash',
         'blood and sand', 'flesh and stone', 'pride', 'defiance banner',
@@ -1129,7 +1132,7 @@ function getGemColor(gemName) {
         'flame link', 'rage vortex', 'corrupting cry',
         // PoE 2 и новые скиллы
         'rolling', 'hammer of the gods', 'firestorm', 'stampede',
-        'crushing fist', 'artillery', 'sundering', 'vaal',
+        'crushing fist', 'artillery', 'sundering', 'vaal', 'link',
         // Дополнительные огненные
         'heat', 'ember', 'combust', 'scorch', 'ash', 'pyro', 'flame wall',
         'blazing', 'phoenix', 'cremation', 'desecrate',
@@ -1137,7 +1140,7 @@ function getGemColor(gemName) {
         'armor', 'armour', 'physical', 'brutality', 'melee',
         // Дополнительные крафтовые/редкие скиллы
         'shield', 'bash', 'charge', 'strike', 'throw', 'reckoning',
-        'vengeance', 'riposte', 'fissure',
+        'vengeance', 'riposte', 'fissure', 'pyroclast',
         // Дополнительно: stance, warrior skills
         'blood', 'sand', 'flesh', 'stone', 'berserker', 'warcry', 'cry',
         // PoE 2 Strength skills
