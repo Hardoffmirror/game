@@ -176,7 +176,7 @@ function displayGemsCompact(gems) {
 
             return `
                 <div class="gem-compact-item">
-                    <span class="gem-compact-name" style="color: ${gemColor};">${escapeHtml(gem.nameSpec)}</span>
+                    <span class="gem-compact-name copyable" data-copy="${escapeHtml(gem.nameSpec)}" style="color: ${gemColor};" title="Нажмите для копирования">${escapeHtml(gem.nameSpec)}</span>
                     <span class="gem-compact-details">
                         Lvl ${gem.level} | Q ${gem.quality}%
                         ${tradeLink}
@@ -426,7 +426,9 @@ function getItemIcon(item) {
     // Создаем упрощенное имя для поиска изображения
     let simplifiedName = String(itemName)
         .replace(/^The\s+/i, '')  // Убираем "The" в начале
-        .replace(/[''`´']/g, '')  // Убираем все виды апострофов
+        .replace(/[''`´'']/g, '')  // Убираем все виды апострофов
+        .replace(/æ/gi, 'ae')  // Заменяем æ на ae
+        .replace(/œ/gi, 'oe')  // Заменяем œ на oe
         .replace(/[^\w\s-]/g, '')  // Убираем все кроме букв, цифр, пробелов и дефисов
         .replace(/\s+/g, '')  // Убираем все пробелы
         .replace(/-+/g, '');  // Убираем дефисы
@@ -741,9 +743,15 @@ function getGemColor(gemName) {
 
     const nameLower = gemName.toLowerCase();
 
+    // Сначала проверяем на Vaal gems - они наследуют цвет основного скилла
+    const isVaal = nameLower.startsWith('vaal ');
+
     // Support gems - определяем цвет по типу support
-    if (nameLower.includes('support') || nameLower.includes('awakened')) {
-        // Красные support gems
+    const isSupport = nameLower.includes(' support') ||
+                     (nameLower.includes('awakened ') && nameLower.includes(' support'));
+
+    if (isSupport) {
+        // Красные support gems (Strength)
         const redSupports = ['melee physical damage', 'multistrike', 'fortify', 'ruthless',
             'bloodlust', 'brutality', 'pulverise', 'close combat', 'fist of war',
             'impale', 'shockwave', 'ancestral call', 'call to arms', 'fire penetration',
@@ -754,10 +762,13 @@ function getGemColor(gemName) {
             'knockback', 'awakened fire penetration', 'awakened brutality',
             'awakened melee physical', 'awakened elemental damage', 'melee strike range',
             'trauma', 'earthbreaker', 'physical', 'overwhelm', 'iron will',
+            'melee', 'slam', 'strike', 'heavy', 'martial', 'awakened fire',
+            'awakened added fire', 'infernal', 'burning', 'flame',
             'war banner', 'damage on full life', 'chance to flee', 'reduced mana',
             'inspiration', 'second wind', 'eternal blessing'];
 
-        // Зеленые support gems
+
+        // Зеленые support gems (Dexterity)
         const greenSupports = ['pierce', 'chain', 'fork', 'greater multiple projectiles',
             'lesser multiple projectiles', 'slower projectiles', 'faster projectiles',
             'projectile', 'point blank', 'ballista', 'barrage', 'volley',
@@ -771,9 +782,11 @@ function getGemColor(gemName) {
             'faster attacks', 'added chaos damage', 'chance to poison', 'lesser poison',
             'awakened deadly ailments', 'awakened swift affliction', 'awakened unbound ailments',
             'enhanced traps', 'detonation', 'culling strike', 'close range',
+            'awakened added chaos', 'venom', 'poison', 'chaos', 'void',
+            'arrow', 'bow', 'dagger', 'claw',
             'blind', 'chance to flee', 'item rarity', 'life gain on hit'];
 
-        // Синие support gems
+        // Синие support gems (Intelligence)
         const blueSupports = ['spell echo', 'unleash', 'intensify', 'spell cascade',
             'greater spell echo', 'concentrated effect', 'increased area',
             'increased critical', 'power charge on critical', 'controlled destruction',
@@ -789,7 +802,9 @@ function getGemColor(gemName) {
             'spell totem', 'awakened controlled destruction', 'awakened unleash',
             'divergent', 'anomalous', 'phantasmal', 'increased duration', 'enhanced duration',
             'overcharge', 'momentum', 'magnified effect', 'spell battery',
-            'elemental army', 'persistence', 'arcane tempo', 'cast on death',
+            'elemental army', 'persistence', 'arcane tempo', 'awakened cold',
+            'awakened lightning', 'spell', 'minion', 'cast', 'totem', 'brand',
+            'curse', 'hex', 'wand', 'staff', 'cast on death',
             'less duration', 'increased critical damage', 'ice bite', 'onslaught',
             'life leech', 'multiple totems'];
 
@@ -840,10 +855,12 @@ function getGemColor(gemName) {
         // Новые
         'flame link', 'rage vortex', 'corrupting cry',
         // PoE 2 и новые скиллы
-        'rolling', 'hammer of the gods', 'stampede',
+        'rolling', 'hammer of the gods', 'firestorm', 'stampede',
         'crushing fist', 'artillery', 'sundering', 'vaal',
         // Дополнительные огненные
-        'heat', 'ember', 'combust', 'scorch', 'ash'
+        'heat', 'ember', 'combust', 'scorch', 'ash',
+        // Дополнительные физические
+        'armor', 'armour', 'physical', 'brutality', 'melee'
     ];
 
     // Зеленые (Dexterity) камни - проджектайлы, яды, ловушки
@@ -1196,7 +1213,7 @@ function handleImageError(img) {
     }
 
     // Если уже пробовали все варианты, скрываем иконку
-    if (img.dataset.attempt && parseInt(img.dataset.attempt) >= 5) {
+    if (img.dataset.attempt && parseInt(img.dataset.attempt) >= 7) {
         img.parentElement.style.display = 'none';
         if (console.debug) {
             console.debug(`[Image] No valid image found for: ${itemName || baseType} (slot: ${slot})`);
@@ -1215,7 +1232,9 @@ function handleImageError(img) {
         if (!name || typeof name !== 'string') return '';
         return String(name)
             .replace(/^The\s+/i, '')
-            .replace(/[''`´']/g, '')
+            .replace(/[''`´'']/g, '')
+            .replace(/æ/gi, 'ae')
+            .replace(/œ/gi, 'oe')
             .replace(/[^\w\s-]/g, '')
             .replace(/\s+/g, '')
             .replace(/-+/g, '');
@@ -1255,6 +1274,24 @@ function handleImageError(img) {
             const simplifiedName = sanitizeName(itemName || baseType);
             if (simplifiedName && simplifiedName.length > 2) {
                 newUrl = `https://web.poecdn.com/image/Art/2DItems/${altCategory}/${simplifiedName}.png`;
+            }
+        }
+    } else if (attempt === 5) {
+        // Попытка 5: пробуем имя с сохранением пробелов (заменяем на пустую строку по-другому)
+        const nameWithoutSpecialChars = (itemName || baseType)
+            .replace(/^The\s+/i, '')
+            .replace(/[^a-zA-Z0-9]/g, '');
+        if (nameWithoutSpecialChars && nameWithoutSpecialChars.length > 2) {
+            newUrl = `https://web.poecdn.com/image/Art/2DItems/${category}/${nameWithoutSpecialChars}.png`;
+        }
+    } else if (attempt === 6) {
+        // Попытка 6: пробуем с альтернативной категорией и упрощенным именем
+        const altCategory = getAlternativeCategory(category, slot);
+        if (altCategory) {
+            const nameWithoutSpecialChars = (baseType || itemName)
+                .replace(/[^a-zA-Z0-9]/g, '');
+            if (nameWithoutSpecialChars && nameWithoutSpecialChars.length > 2) {
+                newUrl = `https://web.poecdn.com/image/Art/2DItems/${altCategory}/${nameWithoutSpecialChars}.png`;
             }
         }
     }
