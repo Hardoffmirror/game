@@ -84,6 +84,15 @@ header h1 {
     border: 2px solid var(--border);
 }
 
+.saved-builds-selector .btn-secondary,
+.saved-builds-selector .btn-danger {
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 140px;
+}
+
 .saved-builds-selector label {
     font-weight: 600;
     color: var(--text-primary);
@@ -120,6 +129,10 @@ header h1 {
     padding: 16px;
     font-size: 1.1rem;
     font-weight: 600;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .btn-secondary {
@@ -1536,5 +1549,20 @@ body.progress-mode .gem-compact-item {
     .progress-mode-controls {
         flex-direction: column !important;
         gap: 10px !important;
+    }
+
+    .display-modes-container {
+        flex-direction: column !important;
+    }
+
+    .saved-builds-selector {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .saved-builds-selector select,
+    .saved-builds-selector .btn-secondary,
+    .saved-builds-selector .btn-danger {
+        width: 100% !important;
     }
 }

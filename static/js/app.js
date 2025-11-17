@@ -532,6 +532,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Делаем updateProgressList глобальной
     window.updateProgressList = updateProgressList;
+
+    // Обработчик для компактного режима (инициализируется после парсинга)
+    function initCompactMode() {
+        const compactModeCheckbox = document.getElementById('compactModeCheckbox');
+        if (compactModeCheckbox && !compactModeCheckbox.dataset.initialized) {
+            compactModeCheckbox.dataset.initialized = 'true';
+            compactModeCheckbox.addEventListener('change', (e) => {
+                const gemsCompactSection = document.getElementById('gemsCompactSection');
+                if (e.target.checked) {
+                    document.body.classList.add('compact-mode');
+                    if (gemsCompactSection) {
+                        gemsCompactSection.style.display = 'block';
+                    }
+                } else {
+                    document.body.classList.remove('compact-mode');
+                    if (gemsCompactSection) {
+                        gemsCompactSection.style.display = 'none';
+                    }
+                }
+            });
+        }
+    }
+
+    // Делаем функцию глобальной для вызова после отображения результатов
+    window.initCompactMode = initCompactMode;
 });
 
 function showError(message) {
@@ -598,6 +623,11 @@ function displayResults(data) {
     displayGemsCompact(data.gems || []);
 
     showResults();
+
+    // Инициализируем обработчик компактного режима
+    if (window.initCompactMode) {
+        window.initCompactMode();
+    }
 }
 
 function displayGemsCompact(gems) {
@@ -730,7 +760,7 @@ function displayBuildInfoAndStats(data) {
     // Создаем строку с бандитом для вставки рядом с уровнем класса
     const banditText = buildInfo.bandit && buildInfo.bandit !== 'None' ? ` | Bandit: ${escapeHtml(buildInfo.bandit)}` : '';
 
-    // Объединенная верстка с кнопкой компактного режима
+    // Объединенная верстка со статистикой
     unifiedDiv.innerHTML = `
         <div class="build-info-stats-combined">
             ${configHtml}
@@ -744,35 +774,9 @@ function displayBuildInfoAndStats(data) {
                     ${stats.jewels.total > 0 ? `<span>💎 <strong>${stats.jewels.total}</strong></span>` : ''}
                     ${stats.flasks.total > 0 ? `<span>🧪 <strong>${stats.flasks.total}</strong></span>` : ''}
                 </div>
-                <div class="compact-mode-toggle" style="margin-top: 10px; justify-content: flex-end;">
-                    <span class="toggle-label">Компактный режим</span>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="compactModeCheckbox">
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
             </div>
         </div>
     `;
-
-    // Добавляем обработчик для чекбокса после создания HTML
-    const compactModeCheckbox = document.getElementById('compactModeCheckbox');
-    if (compactModeCheckbox) {
-        compactModeCheckbox.addEventListener('change', (e) => {
-            const gemsCompactSection = document.getElementById('gemsCompactSection');
-            if (e.target.checked) {
-                document.body.classList.add('compact-mode');
-                if (gemsCompactSection) {
-                    gemsCompactSection.style.display = 'block';
-                }
-            } else {
-                document.body.classList.remove('compact-mode');
-                if (gemsCompactSection) {
-                    gemsCompactSection.style.display = 'none';
-                }
-            }
-        });
-    }
 }
 
 function createConfigHtml(buildInfo, characterStats) {
