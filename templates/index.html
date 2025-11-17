@@ -14,8 +14,39 @@
         </header>
 
         <div class="input-section">
+            <div class="builds-manager">
+                <div class="saved-builds-selector">
+                    <label for="savedBuildsSelect">Сохраненные билды:</label>
+                    <select id="savedBuildsSelect">
+                        <option value="">-- Выберите билд --</option>
+                    </select>
+                    <button id="loadBuildBtn" class="btn-secondary" disabled>Загрузить</button>
+                    <button id="deleteBuildBtn" class="btn-danger" disabled>Удалить</button>
+                </div>
+            </div>
             <textarea id="buildCode" placeholder="Вставьте код билда из Path of Building..."></textarea>
-            <button id="parseBtn" class="btn">Парсить билд</button>
+            <div class="action-buttons">
+                <button id="parseBtn" class="btn">Парсить билд</button>
+                <button id="saveBuildBtn" class="btn-secondary">Сохранить билд</button>
+            </div>
+        </div>
+
+        <!-- Модальное окно для сохранения билда -->
+        <div id="saveBuildModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Сохранить билд</h2>
+                    <span class="modal-close">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <label for="buildNameInput">Название билда:</label>
+                    <input type="text" id="buildNameInput" placeholder="Например: Bleed Gladiator" maxlength="50">
+                </div>
+                <div class="modal-footer">
+                    <button id="confirmSaveBtn" class="btn">Сохранить</button>
+                    <button id="cancelSaveBtn" class="btn-secondary">Отмена</button>
+                </div>
+            </div>
         </div>
 
         <div id="error" class="error"></div>

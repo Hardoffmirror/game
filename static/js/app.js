@@ -1,11 +1,73 @@
 // PoE Build Converter - Frontend Logic
 
+// Управление сохраненными билдами
+const BuildsManager = {
+    STORAGE_KEY: 'poe_saved_builds',
+
+    getBuilds() {
+        try {
+            const builds = localStorage.getItem(this.STORAGE_KEY);
+            return builds ? JSON.parse(builds) : [];
+        } catch (error) {
+            console.error('Ошибка при чтении сохраненных билдов:', error);
+            return [];
+        }
+    },
+
+    saveBuilds(builds) {
+        try {
+            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(builds));
+            return true;
+        } catch (error) {
+            console.error('Ошибка при сохранении билдов:', error);
+            return false;
+        }
+    },
+
+    addBuild(name, code) {
+        const builds = this.getBuilds();
+        const newBuild = {
+            id: Date.now(),
+            name: name,
+            code: code,
+            createdAt: new Date().toISOString()
+        };
+        builds.push(newBuild);
+        return this.saveBuilds(builds) ? newBuild : null;
+    },
+
+    deleteBuild(id) {
+        const builds = this.getBuilds();
+        const filtered = builds.filter(b => b.id !== id);
+        return this.saveBuilds(filtered);
+    },
+
+    getBuild(id) {
+        const builds = this.getBuilds();
+        return builds.find(b => b.id === id);
+    }
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     const buildCodeTextarea = document.getElementById('buildCode');
     const parseBtn = document.getElementById('parseBtn');
     const errorDiv = document.getElementById('error');
     const loadingDiv = document.getElementById('loading');
     const resultsDiv = document.getElementById('results');
+
+    // Элементы управления билдами
+    const savedBuildsSelect = document.getElementById('savedBuildsSelect');
+    const loadBuildBtn = document.getElementById('loadBuildBtn');
+    const deleteBuildBtn = document.getElementById('deleteBuildBtn');
+    const saveBuildBtn = document.getElementById('saveBuildBtn');
+    const saveBuildModal = document.getElementById('saveBuildModal');
+    const buildNameInput = document.getElementById('buildNameInput');
+    const confirmSaveBtn = document.getElementById('confirmSaveBtn');
+    const cancelSaveBtn = document.getElementById('cancelSaveBtn');
+    const modalClose = document.querySelector('.modal-close');
+
+    // Загрузка списка билдов при старте
+    loadBuildsList();
 
     parseBtn.addEventListener('click', async () => {
         const buildCode = buildCodeTextarea.value.trim();
@@ -61,6 +123,124 @@ document.addEventListener('DOMContentLoaded', () => {
             copyToClipboard(copyable.dataset.copy);
         }
     });
+
+    // Управление билдами
+    savedBuildsSelect.addEventListener('change', () => {
+        const selected = savedBuildsSelect.value;
+        loadBuildBtn.disabled = !selected;
+        deleteBuildBtn.disabled = !selected;
+    });
+
+    loadBuildBtn.addEventListener('click', () => {
+        const buildId = parseInt(savedBuildsSelect.value);
+        if (!buildId) return;
+
+        const build = BuildsManager.getBuild(buildId);
+        if (build) {
+            buildCodeTextarea.value = build.code;
+            showCopyNotification('Билд загружен: ' + build.name);
+        }
+    });
+
+    deleteBuildBtn.addEventListener('click', () => {
+        const buildId = parseInt(savedBuildsSelect.value);
+        if (!buildId) return;
+
+        const build = BuildsManager.getBuild(buildId);
+        if (build && confirm(`Удалить билд "${build.name}"?`)) {
+            if (BuildsManager.deleteBuild(buildId)) {
+                loadBuildsList();
+                showCopyNotification('Билд удален');
+            } else {
+                showError('Ошибка при удалении билда');
+            }
+        }
+    });
+
+    saveBuildBtn.addEventListener('click', () => {
+        const buildCode = buildCodeTextarea.value.trim();
+        if (!buildCode) {
+            showError('Нет кода билда для сохранения');
+            return;
+        }
+
+        buildNameInput.value = '';
+        saveBuildModal.classList.add('show');
+        buildNameInput.focus();
+    });
+
+    confirmSaveBtn.addEventListener('click', () => {
+        const buildName = buildNameInput.value.trim();
+        const buildCode = buildCodeTextarea.value.trim();
+
+        if (!buildName) {
+            showError('Введите название билда');
+            return;
+        }
+
+        if (!buildCode) {
+            showError('Нет кода билда для сохранения');
+            return;
+        }
+
+        const newBuild = BuildsManager.addBuild(buildName, buildCode);
+        if (newBuild) {
+            loadBuildsList();
+            saveBuildModal.classList.remove('show');
+            showCopyNotification('Билд сохранен: ' + buildName);
+
+            // Автоматически выбираем сохраненный билд
+            savedBuildsSelect.value = newBuild.id;
+            loadBuildBtn.disabled = false;
+            deleteBuildBtn.disabled = false;
+        } else {
+            showError('Ошибка при сохранении билда');
+        }
+    });
+
+    cancelSaveBtn.addEventListener('click', () => {
+        saveBuildModal.classList.remove('show');
+    });
+
+    modalClose.addEventListener('click', () => {
+        saveBuildModal.classList.remove('show');
+    });
+
+    // Закрытие модального окна по клику вне его
+    saveBuildModal.addEventListener('click', (e) => {
+        if (e.target === saveBuildModal) {
+            saveBuildModal.classList.remove('show');
+        }
+    });
+
+    // Сохранение по Enter в input
+    buildNameInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            confirmSaveBtn.click();
+        }
+    });
+
+    function loadBuildsList() {
+        const builds = BuildsManager.getBuilds();
+
+        // Очищаем список
+        savedBuildsSelect.innerHTML = '<option value="">-- Выберите билд --</option>';
+
+        // Добавляем билды (сортируем по дате создания, новые сверху)
+        builds.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        builds.forEach(build => {
+            const option = document.createElement('option');
+            option.value = build.id;
+            const date = new Date(build.createdAt).toLocaleDateString('ru-RU');
+            option.textContent = `${build.name} (${date})`;
+            savedBuildsSelect.appendChild(option);
+        });
+
+        // Отключаем кнопки если нет выбранного билда
+        loadBuildBtn.disabled = true;
+        deleteBuildBtn.disabled = true;
+    }
 });
 
 function showError(message) {
@@ -875,14 +1055,17 @@ function getGemColor(gemName) {
         'rolling', 'hammer of the gods', 'firestorm', 'stampede',
         'crushing fist', 'artillery', 'sundering', 'vaal',
         // Дополнительные огненные
-        'heat', 'ember', 'combust', 'scorch', 'ash', 'pyro',
+        'heat', 'ember', 'combust', 'scorch', 'ash', 'pyro', 'flame wall',
+        'blazing', 'phoenix', 'cremation', 'desecrate',
         // Дополнительные физические
         'armor', 'armour', 'physical', 'brutality', 'melee',
         // Дополнительные крафтовые/редкие скиллы
         'shield', 'bash', 'charge', 'strike', 'throw', 'reckoning',
         'vengeance', 'riposte', 'fissure',
         // Дополнительно: stance, warrior skills
-        'blood', 'sand', 'flesh', 'stone', 'berserker', 'warcry', 'cry'
+        'blood', 'sand', 'flesh', 'stone', 'berserker', 'warcry', 'cry',
+        // PoE 2 Strength skills
+        'sunder', 'armor break', 'stampede', 'rolling slam'
     ];
 
     // Зеленые (Dexterity) камни - проджектайлы, яды, ловушки
@@ -925,7 +1108,10 @@ function getGemColor(gemName) {
         'arrow', 'trap', 'mine', 'steel', 'blade', 'dagger',
         // Дополнительно: movement и utility
         'blink', 'dash', 'shift', 'fade', 'evasion',
-        'poison', 'bleed', 'rupture', 'laceration'
+        'poison', 'bleed', 'rupture', 'laceration',
+        // PoE 2 и дополнительно
+        'vine', 'thorn', 'toxic growth', 'pathfinder', 'ranger',
+        'crossbow', 'bolt', 'snipe', 'ambush', 'shadow step'
     ];
 
     // Синие (Intelligence) камни - холод, молния, заклинания, миньоны
@@ -982,7 +1168,10 @@ function getGemColor(gemName) {
         'wand', 'sceptre', 'golem', 'zombie', 'skeleton',
         'curse', 'mark', 'weakness',
         // Дополнительно: elemental и chaos
-        'elemental', 'chaos', 'void', 'profane', 'necro'
+        'elemental', 'chaos', 'void', 'profane', 'necro',
+        // PoE 2 и дополнительные
+        'conjure', 'mage', 'wizard', 'sorcerer', 'witch',
+        'rune', 'enchant', 'teleport', 'astral', 'cosmic'
     ];
 
     // Проверяем ключевые слова для красных
@@ -1198,11 +1387,11 @@ function copyToClipboard(text) {
     document.body.removeChild(textarea);
 }
 
-function showCopyNotification() {
+function showCopyNotification(message = 'Скопировано!') {
     // Создаем уведомление
     const notification = document.createElement('div');
     notification.className = 'copy-notification';
-    notification.textContent = 'Скопировано!';
+    notification.textContent = message;
     document.body.appendChild(notification);
 
     // Показываем с анимацией
