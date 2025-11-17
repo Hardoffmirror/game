@@ -389,8 +389,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 cb.style.display = isProgressMode ? 'flex' : 'none';
             });
 
-            // Показываем/скрываем чекбоксы на камнях
+            // Показываем/скрываем чекбоксы на камнях (включая камни в предметах)
             document.querySelectorAll('.gem-progress-checkbox').forEach(cb => {
+                cb.style.display = isProgressMode ? 'flex' : 'none';
+            });
+
+            // Дополнительно показываем/скрываем чекбоксы на камнях в предметах
+            document.querySelectorAll('.gem-item-checkbox').forEach(cb => {
                 cb.style.display = isProgressMode ? 'flex' : 'none';
             });
         });
@@ -411,9 +416,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            // Скрываем/показываем собранные камни
+            // Скрываем/показываем собранные камни (включая камни в компактном режиме)
             document.querySelectorAll('.gem-item').forEach(gem => {
                 const checkbox = gem.querySelector('.gem-checkbox-input');
+                if (checkbox && checkbox.checked && shouldHide) {
+                    gem.style.display = 'none';
+                } else {
+                    gem.style.display = '';
+                }
+            });
+
+            // Скрываем/показываем собранные камни внутри предметов
+            document.querySelectorAll('.gem-in-item').forEach(gem => {
+                const checkbox = gem.querySelector('.gem-item-checkbox-input');
                 if (checkbox && checkbox.checked && shouldHide) {
                     gem.style.display = 'none';
                 } else {
@@ -441,13 +456,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (confirm('Очистить весь прогресс отслеживания?')) {
                 ProgressManager.clearProgress();
 
-                // Снимаем все галочки
-                document.querySelectorAll('.item-checkbox-input, .gem-checkbox-input').forEach(cb => {
+                // Снимаем все галочки (включая камни в предметах)
+                document.querySelectorAll('.item-checkbox-input, .gem-checkbox-input, .gem-item-checkbox-input').forEach(cb => {
                     cb.checked = false;
                 });
 
-                // Показываем все скрытые предметы
-                document.querySelectorAll('.item-card, .gem-item').forEach(item => {
+                // Показываем все скрытые предметы и камни
+                document.querySelectorAll('.item-card, .gem-item, .gem-in-item').forEach(item => {
                     item.style.display = '';
                 });
 
@@ -480,7 +495,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Собираем все камни
+        // Собираем все камни (включая камни из компактного режима)
         document.querySelectorAll('.gem-item').forEach(gem => {
             const checkbox = gem.querySelector('.gem-checkbox-input');
             const nameEl = gem.querySelector('.gem-name');
@@ -490,6 +505,32 @@ document.addEventListener('DOMContentLoaded', () => {
                     type: 'gem',
                     name: nameEl.textContent,
                     slot: 'Gem',
+                    collected: checkbox.checked,
+                    id: checkbox.dataset.itemId
+                });
+            }
+        });
+
+        // Собираем камни внутри предметов
+        document.querySelectorAll('.gem-in-item').forEach(gem => {
+            const checkbox = gem.querySelector('.gem-item-checkbox-input');
+            const nameEl = gem.querySelector('.gem-name');
+
+            if (checkbox && nameEl) {
+                // Пытаемся найти родительский предмет для контекста
+                const itemCard = gem.closest('.item-card');
+                let parentSlot = 'Gem (in item)';
+                if (itemCard) {
+                    const slotEl = itemCard.querySelector('.item-slot');
+                    if (slotEl) {
+                        parentSlot = `Gem (${slotEl.textContent})`;
+                    }
+                }
+
+                allItems.push({
+                    type: 'gem-in-item',
+                    name: nameEl.textContent,
+                    slot: parentSlot,
                     collected: checkbox.checked,
                     id: checkbox.dataset.itemId
                 });
@@ -1237,15 +1278,16 @@ function createGemsDisplay(gemGroups) {
             const tradeUrl = createGemTradeUrl(gem);
             const tradeLink = tradeUrl ? `<a href="${tradeUrl}" target="_blank" class="gem-trade-link" title="Искать на trade (${details})">🔗</a>` : '';
 
-            // Создаем ID для камня
-            const gemId = `gem_${gem.nameSpec}_${gem.level}_${gem.quality}`.replace(/[^a-zA-Z0-9_]/g, '_');
+            // Создаем ID для камня (используем slot для уникальности камней в разных предметах)
+            const slotPrefix = gemGroup.slot ? gemGroup.slot.replace(/[^a-zA-Z0-9_]/g, '_') : 'unknown';
+            const gemId = `gem_item_${slotPrefix}_${gem.nameSpec}_${gem.level}_${gem.quality}`.replace(/[^a-zA-Z0-9_]/g, '_');
             const isCollected = ProgressManager.isItemCollected(gemId);
 
             // Чекбокс для камня
             const checkboxHtml = `
-                <div class="gem-progress-checkbox" style="display: none;">
+                <div class="gem-progress-checkbox gem-item-checkbox" style="display: none;">
                     <label class="progress-checkbox-label">
-                        <input type="checkbox" class="gem-checkbox-input" data-item-id="${gemId}" ${isCollected ? 'checked' : ''}
+                        <input type="checkbox" class="gem-checkbox-input gem-item-checkbox-input" data-item-id="${gemId}" ${isCollected ? 'checked' : ''}
                                onchange="handleGemCheckboxChange(this, '${gemId}')">
                         <span class="checkbox-mark"></span>
                     </label>
@@ -1253,7 +1295,7 @@ function createGemsDisplay(gemGroups) {
             `;
 
             return `
-                <div class="gem-item copyable" data-copy="${escapeHtml(gem.nameSpec)}" title="Нажмите, чтобы скопировать">
+                <div class="gem-item gem-in-item copyable" data-copy="${escapeHtml(gem.nameSpec)}" title="Нажмите, чтобы скопировать">
                     ${checkboxHtml}
                     <div class="gem-content">
                         <span class="gem-name" style="color: ${gemColor};">${escapeHtml(gem.nameSpec)}</span>
@@ -1943,9 +1985,15 @@ function handleGemCheckboxChange(checkbox, gemId) {
     // Если включен режим скрытия собранного, скрываем/показываем камень
     const hideCollected = document.getElementById('hideCollectedCheckbox');
     if (hideCollected && hideCollected.checked && isChecked) {
+        // Ищем камень в разных контекстах: обычный gem-item или gem-in-item
         const gemItem = checkbox.closest('.gem-item');
         if (gemItem) {
             gemItem.style.display = 'none';
+        }
+
+        const gemInItem = checkbox.closest('.gem-in-item');
+        if (gemInItem) {
+            gemInItem.style.display = 'none';
         }
     }
 }
