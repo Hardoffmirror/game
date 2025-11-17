@@ -222,12 +222,6 @@ function displayBuildInfoAndStats(data) {
     const characterStats = data.character_stats || {};
     const unifiedDiv = document.getElementById('buildInfoStats');
 
-    // Создаем URL для картинки подкласса
-    const ascendancyImage = getAscendancyImage(buildInfo.ascendClassName);
-
-    // Получаем URL картинки класса
-    const classImage = getClassImage(buildInfo.className);
-
     // Подсчитываем статистику
     const stats = {
         equipment: { total: 0, unique: 0, rare: 0, magic: 0, normal: 0 },
@@ -263,168 +257,23 @@ function displayBuildInfoAndStats(data) {
     countItems(data.jewels, 'jewels');
     countItems(data.flasks, 'flasks');
 
-    // Создаем HTML для статистики персонажа
-    const charStatsHtml = createCharacterStatsHtml(characterStats);
-
     // Создаем HTML для конфига, бандита и пантеона
     const configHtml = createConfigHtml(buildInfo, characterStats);
 
     // Объединенная верстка
     unifiedDiv.innerHTML = `
         <div class="build-info-stats-combined">
-            <div class="build-header">
-                <div class="class-images">
-                    ${classImage ? `<img src="${classImage}" class="class-icon" alt="${escapeHtml(buildInfo.className)}" onerror="this.style.display='none'">` : ''}
-                    ${ascendancyImage ? `<img src="${ascendancyImage}" class="ascendancy-icon-large" alt="${escapeHtml(buildInfo.ascendClassName)}" onerror="this.style.display='none'">` : ''}
-                </div>
-                <div class="build-details">
-                    <div class="build-class-name">${escapeHtml(buildInfo.className)}${buildInfo.ascendClassName && buildInfo.ascendClassName !== 'None' ? ` - ${escapeHtml(buildInfo.ascendClassName)}` : ''}</div>
-                    <div class="build-level-info">Уровень ${escapeHtml(buildInfo.level)}${buildInfo.league && buildInfo.league !== 'Unknown' ? ` | Лига: ${escapeHtml(buildInfo.league)}` : ''}</div>
-                </div>
-            </div>
-            ${charStatsHtml}
             ${configHtml}
             <div class="stats-section">
-                <div class="stats-title">📊 Статистика предметов</div>
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <span class="stat-label">Всего:</span>
-                        <span class="stat-value">${stats.total.total}</span>
-                    </div>
-                    ${stats.total.unique > 0 ? `
-                    <div class="stat-item">
-                        <span class="stat-label rarity-unique-text">Уникальных:</span>
-                        <span class="stat-value">${stats.total.unique}</span>
-                    </div>
-                    ` : ''}
-                    ${stats.total.rare > 0 ? `
-                    <div class="stat-item">
-                        <span class="stat-label rarity-rare-text">Редких:</span>
-                        <span class="stat-value">${stats.total.rare}</span>
-                    </div>
-                    ` : ''}
-                    ${stats.equipment.total > 0 ? `
-                    <div class="stat-item">
-                        <span class="stat-label">⚔️ Экипировка:</span>
-                        <span class="stat-value">${stats.equipment.total}</span>
-                    </div>
-                    ` : ''}
-                    ${stats.jewels.total > 0 ? `
-                    <div class="stat-item">
-                        <span class="stat-label">💎 Самоцветы:</span>
-                        <span class="stat-value">${stats.jewels.total}</span>
-                    </div>
-                    ` : ''}
-                    ${stats.flasks.total > 0 ? `
-                    <div class="stat-item">
-                        <span class="stat-label">🧪 Фласки:</span>
-                        <span class="stat-value">${stats.flasks.total}</span>
-                    </div>
-                    ` : ''}
+                <div class="stats-title">📊 ${escapeHtml(buildInfo.className)}${buildInfo.ascendClassName && buildInfo.ascendClassName !== 'None' ? ` - ${escapeHtml(buildInfo.ascendClassName)}` : ''} | Lvl ${escapeHtml(buildInfo.level)}</div>
+                <div class="stats-grid" style="display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 14px;">
+                    <span>Всего: <strong>${stats.total.total}</strong></span>
+                    ${stats.total.unique > 0 ? `<span class="rarity-unique-text">Уникальных: <strong>${stats.total.unique}</strong></span>` : ''}
+                    ${stats.total.rare > 0 ? `<span class="rarity-rare-text">Редких: <strong>${stats.total.rare}</strong></span>` : ''}
+                    ${stats.equipment.total > 0 ? `<span>⚔️ <strong>${stats.equipment.total}</strong></span>` : ''}
+                    ${stats.jewels.total > 0 ? `<span>💎 <strong>${stats.jewels.total}</strong></span>` : ''}
+                    ${stats.flasks.total > 0 ? `<span>🧪 <strong>${stats.flasks.total}</strong></span>` : ''}
                 </div>
-            </div>
-        </div>
-    `;
-}
-
-function createCharacterStatsHtml(stats) {
-    if (!stats) return '';
-
-    // Создаем строки статистики
-    const statLines = [];
-
-    // Life (поддержка обоих форматов: stats.life и stats.life из расчётов)
-    const life = stats.life;
-    if (life && life > 0) {
-        statLines.push(`❤️ Life: ${formatNumber(life)}`);
-    }
-
-    // ES (energy_shield из расчётов или es из XML)
-    const es = stats.energy_shield || stats.es;
-    if (es && es > 0) {
-        statLines.push(`🛡️ Energy Shield: ${formatNumber(es)}`);
-    }
-
-    // Mana
-    const mana = stats.mana;
-    if (mana && mana > 0) {
-        statLines.push(`✨ Mana: ${formatNumber(mana)}`);
-    }
-
-    // Armour
-    const armour = stats.armour;
-    if (armour && armour > 0) {
-        statLines.push(`🔰 Armour: ${formatNumber(armour)}`);
-    }
-
-    // Evasion
-    const evasion = stats.evasion;
-    if (evasion && evasion > 0) {
-        statLines.push(`💨 Evasion: ${formatNumber(evasion)}`);
-    }
-
-    // Resistances
-    if (stats.resistances) {
-        const resists = stats.resistances;
-        if (resists.fire !== undefined || resists.cold !== undefined ||
-            resists.lightning !== undefined || resists.chaos !== undefined) {
-            const resistParts = [];
-            if (resists.fire !== undefined) resistParts.push(`🔥 ${resists.fire}%`);
-            if (resists.cold !== undefined) resistParts.push(`❄️ ${resists.cold}%`);
-            if (resists.lightning !== undefined) resistParts.push(`⚡ ${resists.lightning}%`);
-            if (resists.chaos !== undefined) resistParts.push(`☠️ ${resists.chaos}%`);
-            statLines.push(`Resistances: ${resistParts.join(' | ')}`);
-        }
-    }
-
-    // Crit Chance (поддержка обоих форматов)
-    const critChance = stats.crit_chance;
-    if (critChance && critChance > 0) {
-        statLines.push(`🎯 Crit Chance: ${critChance.toFixed(1)}%`);
-    }
-
-    // Crit Multi (поддержка обоих форматов)
-    const critMulti = stats.crit_multiplier || stats.crit_multi;
-    if (critMulti && critMulti > 0) {
-        statLines.push(`💥 Crit Multi: ${critMulti.toFixed(0)}%`);
-    }
-
-    // Attack Speed
-    const attackSpeed = stats.attack_speed;
-    if (attackSpeed && attackSpeed > 0) {
-        statLines.push(`⚔️ Attack Speed: ${attackSpeed.toFixed(2)}`);
-    }
-
-    // Cast Speed
-    const castSpeed = stats.cast_speed;
-    if (castSpeed && castSpeed > 0) {
-        statLines.push(`🔮 Cast Speed: ${castSpeed.toFixed(2)}`);
-    }
-
-    // DPS Estimate
-    const dps = stats.dps_estimate || stats.dps;
-    if (dps && dps > 0) {
-        statLines.push(`⚡ DPS: ${formatNumber(dps)}`);
-    }
-
-    if (statLines.length === 0) {
-        // Если нет статистики, показываем заметку
-        return `
-            <div class="character-stats-section">
-                <div class="stats-title">⚔️ Статистика персонажа</div>
-                <div class="char-stat-item" style="font-style: italic; color: #999; line-height: 1.6;">
-                    ℹ️ Статистика рассчитывается на основе предметов билда.<br>
-                    Для более точной статистики откройте билд в Path of Building.
-                </div>
-            </div>
-        `;
-    }
-
-    return `
-        <div class="character-stats-section">
-            <div class="stats-title">⚔️ Статистика персонажа</div>
-            <div class="character-stats-grid">
-                ${statLines.map(line => `<div class="char-stat-item">${line}</div>`).join('')}
             </div>
         </div>
     `;
