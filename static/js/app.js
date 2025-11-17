@@ -157,8 +157,19 @@ function displayGemsCompact(gems) {
         return;
     }
 
-    const gemsHtml = gems.map(gemGroup => {
-        return gemGroup.gems.map(gem => {
+    // Группируем камни по слотам
+    const gemsBySlot = {};
+    gems.forEach(gemGroup => {
+        const slot = gemGroup.slot || gemGroup.label || 'Unknown Slot';
+        if (!gemsBySlot[slot]) {
+            gemsBySlot[slot] = [];
+        }
+        gemsBySlot[slot].push(...gemGroup.gems);
+    });
+
+    // Создаем HTML для каждого слота
+    const slotsHtml = Object.entries(gemsBySlot).map(([slot, slotGems]) => {
+        const gemsHtml = slotGems.map(gem => {
             const gemColor = getGemColor(gem.nameSpec);
             const tradeUrl = createGemTradeUrl(gem);
             const tradeLink = tradeUrl ? `<a href="${tradeUrl}" target="_blank" class="gem-trade-link" title="Искать на trade">🔗</a>` : '';
@@ -173,9 +184,16 @@ function displayGemsCompact(gems) {
                 </div>
             `;
         }).join('');
+
+        return `
+            <div class="gem-slot-section">
+                <div class="gem-slot-title">📍 ${escapeHtml(slot)}</div>
+                <div class="gem-slot-grid">${gemsHtml}</div>
+            </div>
+        `;
     }).join('');
 
-    gemsCompactGrid.innerHTML = gemsHtml;
+    gemsCompactGrid.innerHTML = slotsHtml;
 }
 
 function findDuplicates(items) {
@@ -880,7 +898,11 @@ function getGemColor(gemName) {
             'bloodlust', 'brutality', 'pulverise', 'close combat', 'fist of war',
             'impale', 'shockwave', 'ancestral call', 'call to arms', 'fire penetration',
             'immolate', 'burning damage', 'combustion', 'ignite proliferation',
-            'elemental focus', 'chance to bleed', 'maim'];
+            'elemental focus', 'chance to bleed', 'maim', 'rage', 'behead',
+            'lifetap', 'cruelty', 'endurance charge on melee stun', 'melee splash',
+            'added fire damage', 'elemental damage with attacks', 'fire', 'stun',
+            'knockback', 'bloodlust', 'awakened fire penetration', 'awakened brutality',
+            'awakened melee physical', 'awakened elemental damage'];
 
         // Зеленые support gems
         const greenSupports = ['pierce', 'chain', 'fork', 'greater multiple projectiles',
@@ -889,7 +911,12 @@ function getGemColor(gemName) {
             'mirage archer', 'vicious projectiles', 'deadly ailments', 'unbound ailments',
             'swift affliction', 'withering touch', 'void manipulation', 'efficacy',
             'trap', 'mine', 'cluster traps', 'multiple traps', 'trap and mine damage',
-            'high-impact mine', 'blastchain mine', 'swift assembly'];
+            'high-impact mine', 'blastchain mine', 'swift assembly', 'nightblade',
+            'returning projectiles', 'awakened fork', 'awakened chain',
+            'awakened greater multiple projectiles', 'awakened vicious projectiles',
+            'awakened void manipulation', 'arrow nova', 'focused ballista',
+            'faster attacks', 'added chaos damage', 'chance to poison', 'lesser poison',
+            'awakened deadly ailments', 'awakened swift affliction', 'awakened unbound ailments'];
 
         // Синие support gems
         const blueSupports = ['spell echo', 'unleash', 'intensify', 'spell cascade',
@@ -899,7 +926,13 @@ function getGemColor(gemName) {
             'lightning penetration', 'added cold', 'added lightning', 'innervate',
             'energy leech', 'mana leech', 'curse on hit', 'hextouch', 'blasphemy',
             'minion damage', 'minion speed', 'minion life', 'meat shield', 'feeding frenzy',
-            'summon phantasm', 'infernal legion', 'deathmark'];
+            'summon phantasm', 'infernal legion', 'deathmark', 'predator',
+            'awakened spell echo', 'awakened spell cascade', 'awakened elemental focus',
+            'awakened minion damage', 'awakened added cold damage', 'awakened added lightning damage',
+            'awakened cold penetration', 'awakened lightning penetration',
+            'faster casting', 'arcane surge', 'cast while channelling', 'cast on critical',
+            'spell totem', 'awakened controlled destruction', 'awakened unleash',
+            'divergent', 'anomalous', 'phantasmal'];
 
         // Проверяем тип support
         for (const keyword of redSupports) {
@@ -921,7 +954,7 @@ function getGemColor(gemName) {
         // Огненные
         'molten', 'fire', 'burning', 'flame', 'infernal', 'magma', 'volcanic',
         'righteous fire', 'scorching ray', 'purifying flame', 'flame dash',
-        'flame surge', 'incinerate', 'searing bond',
+        'flame surge', 'incinerate', 'searing bond', 'flamethrower',
         // Ауры и баффы
         'anger', 'determination', 'vitality', 'purity of fire', 'herald of ash',
         'blood and sand', 'flesh and stone', 'pride', 'defiance banner',
@@ -938,11 +971,15 @@ function getGemColor(gemName) {
         // Крики и стансы
         'enduring cry', 'immortal call', 'rallying cry', 'intimidating cry',
         'generals cry', 'seismic cry', 'ancestral cry', 'infernal cry',
-        'war banner', 'blood rage', 'berserk', 'rage',
+        'war banner', 'blood rage', 'berserk', 'rage', 'battlemage',
         // Тотемы и ancestral
-        'ancestral', 'warchief', 'protector',
+        'ancestral', 'warchief', 'protector', 'devouring totem', 'rejuvenation totem',
         // Прочее
-        'warlord', 'shockwave', 'war', 'seismic', 'absolution'
+        'warlord', 'shockwave', 'war', 'seismic', 'absolution',
+        // Курсы
+        'warlords mark', 'vulnerability', 'flammability', 'punishment',
+        // Новые
+        'flame link', 'link', 'rage vortex', 'corrupting cry'
     ];
 
     // Зеленые (Dexterity) камни - проджектайлы, яды, ловушки
@@ -957,7 +994,7 @@ function getGemColor(gemName) {
         // Яды и DoT
         'viper strike', 'pestilent strike', 'cobra lash', 'plague bearer',
         'poison', 'venom', 'viper', 'plague', 'caustic', 'toxic',
-        'withering step', 'wither',
+        'withering step', 'wither', 'poisonous concoction',
         // Ловушки и мины
         'trap', 'mine', 'bear trap', 'fire trap', 'ice trap', 'lightning trap',
         'explosive trap', 'flamethrower trap', 'siphoning trap', 'seismic trap',
@@ -968,9 +1005,14 @@ function getGemColor(gemName) {
         'spectral helix', 'venom gyre', 'cobra', 'pestilence',
         // Ауры
         'grace', 'haste', 'precision', 'herald of agony', 'herald of ice',
+        // Курсы
+        'snipers mark', 'poachers mark', 'assassins mark', 'projectile weakness',
+        'despair', 'temporal chains',
         // Прочее
         'ricochet', 'chain', 'tornado', 'blood and sand', 'flesh and stone',
-        'steelskin', 'phase run', 'smoke mine'
+        'steelskin', 'phase run', 'smoke mine', 'explosive concoction',
+        // Новые механики
+        'helix', 'gyre', 'steel', 'arrow'
     ];
 
     // Синие (Intelligence) камни - холод, молния, заклинания, миньоны
@@ -995,11 +1037,12 @@ function getGemColor(gemName) {
         'clarity', 'discipline', 'wrath', 'zealotry', 'malevolence',
         'purity of ice', 'purity of lightning', 'purity of elements',
         'herald of thunder', 'herald of ice', 'aspect',
+        'conductivity', 'frostbite', 'elemental weakness', 'enfeeble',
         // Миньоны
         'raise zombie', 'raise spectre', 'summon', 'animate', 'skeletons',
         'carrion', 'raging spirits', 'phantasm', 'stone golem', 'chaos golem',
         'flame golem', 'ice golem', 'lightning golem', 'carrion golem',
-        'absolution', 'herald of purity',
+        'absolution', 'herald of purity', 'dominating blow',
         // Другие заклинания
         'wave of conviction', 'orb of storms', 'discharge', 'power siphon',
         'kinetic blast', 'voltaxic burst', 'hydrosphere', 'eye of winter',
@@ -1009,7 +1052,9 @@ function getGemColor(gemName) {
         'unearth', 'bodyswap', 'bone offering', 'flesh offering', 'spirit offering',
         // Щиты и защита
         'tempest shield', 'frost shield', 'arcane cloak', 'sigil of power',
-        'frost bomb', 'orb of storms',
+        'frost bomb', 'orb of storms', 'energy blade',
+        // Новые заклинания
+        'manabond', 'absolution', 'voltaxic', 'forbidden', 'wintertide',
         // Ключевые слова
         'orb', 'nova', 'pulse', 'intelligence', 'mana', 'energy shield',
         'spell', 'cast', 'totem', 'sigil', 'cascade', 'siphon'
@@ -1042,12 +1087,15 @@ function createTradeUrl(item) {
 
     const isJewel = item.slot && (item.slot.toLowerCase().includes('jewel') ||
                                   item.slot.toLowerCase().includes('abyssal'));
+    const isFlask = item.slot && item.slot.toLowerCase().includes('flask');
+    const isUnique = item.rarity && item.rarity.toLowerCase().includes('unique');
 
-    // For unique items, search by name
-    if (item.rarity && item.rarity.toLowerCase().includes('unique')) {
+    // For unique items, search by name (для уникальных используем только name, без type)
+    if (isUnique) {
         const queryObj = {
             "query": {
                 "name": item.name,
+                "type": item.base_type || "",  // Добавляем base_type для более точного поиска
                 "filters": {}
             }
         };
@@ -1163,16 +1211,30 @@ function createTradeUrl(item) {
         return `https://www.pathofexile.com/trade/search/${currentLeague}?q=${query}`;
     }
 
-    // For flasks (any rarity), search by base type or name
-    const isFlask = item.slot && item.slot.toLowerCase().includes('flask');
+    // For flasks (magic/rare/normal), search by base type
     if (isFlask) {
+        // Для фласков всегда используем base_type как type для поиска
         const searchTerm = item.base_type || item.name;
         if (searchTerm) {
-            const query = encodeURIComponent(JSON.stringify({
+            const queryObj = {
                 "query": {
-                    "type": searchTerm
+                    "type": searchTerm,
+                    "filters": {}
                 }
-            }));
+            };
+
+            // Для magic фласков можно добавить фильтр по редкости
+            if (item.rarity && item.rarity.toLowerCase().includes('magic')) {
+                queryObj.query.filters.type_filters = {
+                    "filters": {
+                        "rarity": {
+                            "option": "magic"
+                        }
+                    }
+                };
+            }
+
+            const query = encodeURIComponent(JSON.stringify(queryObj));
             return `https://www.pathofexile.com/trade/search/${currentLeague}?q=${query}`;
         }
     }

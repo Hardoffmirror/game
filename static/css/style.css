@@ -970,9 +970,31 @@ body.compact-mode .gems-compact-title {
 }
 
 body.compact-mode .gems-compact-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+body.compact-mode .gem-slot-section {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+body.compact-mode .gem-slot-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 8px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+body.compact-mode .gem-slot-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 8px;
+    gap: 4px;
 }
 
 body.compact-mode .gem-compact-item {
