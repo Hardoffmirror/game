@@ -6,24 +6,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const errorDiv = document.getElementById('error');
     const loadingDiv = document.getElementById('loading');
     const resultsDiv = document.getElementById('results');
-    const compactModeCheckbox = document.getElementById('compactModeCheckbox');
-    const compactModeToggle = document.getElementById('compactModeToggle');
-
-    // Обработчик переключателя компактного режима
-    compactModeCheckbox.addEventListener('change', (e) => {
-        const gemsCompactSection = document.getElementById('gemsCompactSection');
-        if (e.target.checked) {
-            document.body.classList.add('compact-mode');
-            if (gemsCompactSection) {
-                gemsCompactSection.style.display = 'block';
-            }
-        } else {
-            document.body.classList.remove('compact-mode');
-            if (gemsCompactSection) {
-                gemsCompactSection.style.display = 'none';
-            }
-        }
-    });
 
     parseBtn.addEventListener('click', async () => {
         const buildCode = buildCodeTextarea.value.trim();
@@ -104,9 +86,7 @@ function hideLoading() {
 
 function showResults() {
     const resultsDiv = document.getElementById('results');
-    const compactModeToggle = document.getElementById('compactModeToggle');
     resultsDiv.classList.add('show');
-    compactModeToggle.style.display = 'flex';
 }
 
 function hideResults() {
@@ -263,7 +243,7 @@ function displayBuildInfoAndStats(data) {
     // Создаем строку с бандитом для вставки рядом с уровнем класса
     const banditText = buildInfo.bandit && buildInfo.bandit !== 'None' ? ` | Bandit: ${escapeHtml(buildInfo.bandit)}` : '';
 
-    // Объединенная верстка
+    // Объединенная верстка с кнопкой компактного режима
     unifiedDiv.innerHTML = `
         <div class="build-info-stats-combined">
             ${configHtml}
@@ -277,9 +257,35 @@ function displayBuildInfoAndStats(data) {
                     ${stats.jewels.total > 0 ? `<span>💎 <strong>${stats.jewels.total}</strong></span>` : ''}
                     ${stats.flasks.total > 0 ? `<span>🧪 <strong>${stats.flasks.total}</strong></span>` : ''}
                 </div>
+                <div class="compact-mode-toggle" style="margin-top: 10px; justify-content: flex-end;">
+                    <span class="toggle-label">Компактный режим</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="compactModeCheckbox">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
             </div>
         </div>
     `;
+
+    // Добавляем обработчик для чекбокса после создания HTML
+    const compactModeCheckbox = document.getElementById('compactModeCheckbox');
+    if (compactModeCheckbox) {
+        compactModeCheckbox.addEventListener('change', (e) => {
+            const gemsCompactSection = document.getElementById('gemsCompactSection');
+            if (e.target.checked) {
+                document.body.classList.add('compact-mode');
+                if (gemsCompactSection) {
+                    gemsCompactSection.style.display = 'block';
+                }
+            } else {
+                document.body.classList.remove('compact-mode');
+                if (gemsCompactSection) {
+                    gemsCompactSection.style.display = 'none';
+                }
+            }
+        });
+    }
 }
 
 function createConfigHtml(buildInfo, characterStats) {
@@ -771,7 +777,8 @@ function getGemColor(gemName) {
             'awakened added fire', 'infernal', 'burning', 'flame',
             'war banner', 'damage on full life', 'chance to flee', 'reduced mana',
             'inspiration', 'second wind', 'eternal blessing',
-            'weapon elemental damage', 'immolate', 'unbound ailments'];
+            'weapon elemental damage', 'immolate', 'unbound ailments',
+            'fire mastery', 'burning ground', 'concentrated', 'heavy strike'];
 
 
         // Зеленые support gems (Dexterity)
@@ -790,7 +797,8 @@ function getGemColor(gemName) {
             'enhanced traps', 'detonation', 'culling strike', 'close range',
             'awakened added chaos', 'venom', 'poison', 'chaos', 'void',
             'arrow', 'bow', 'dagger', 'claw',
-            'blind', 'chance to flee', 'item rarity', 'life gain on hit'];
+            'blind', 'chance to flee', 'item rarity', 'life gain on hit',
+            'projectile mastery', 'chaos mastery', 'wind', 'precision'];
 
         // Синие support gems (Intelligence)
         const blueSupports = ['spell echo', 'unleash', 'intensify', 'spell cascade',
@@ -812,7 +820,8 @@ function getGemColor(gemName) {
             'awakened lightning', 'spell', 'minion', 'cast', 'totem', 'brand',
             'curse', 'hex', 'wand', 'staff', 'cast on death',
             'less duration', 'increased critical damage', 'ice bite', 'onslaught',
-            'life leech', 'multiple totems'];
+            'life leech', 'multiple totems',
+            'cold mastery', 'lightning mastery', 'elemental focus', 'arcane'];
 
         // Проверяем тип support
         for (const keyword of redSupports) {
@@ -835,9 +844,11 @@ function getGemColor(gemName) {
         'molten', 'burning', 'flame', 'infernal', 'magma', 'volcanic',
         'righteous fire', 'scorching ray', 'purifying flame', 'flame dash',
         'flame surge', 'incinerate', 'searing bond', 'flamethrower',
+        'fire', 'combust', 'immolate', 'ignite',
         // Ауры и баффы
         'anger', 'determination', 'vitality', 'purity of fire', 'herald of ash',
         'blood and sand', 'flesh and stone', 'pride', 'defiance banner',
+        'dread banner', 'banner',
         // Физический ближний бой
         'cleave', 'ground slam', 'heavy strike', 'shield charge', 'leap slam',
         'earthquake', 'sunder', 'sweep', 'glacial hammer', 'vigilant strike',
@@ -864,12 +875,14 @@ function getGemColor(gemName) {
         'rolling', 'hammer of the gods', 'firestorm', 'stampede',
         'crushing fist', 'artillery', 'sundering', 'vaal',
         // Дополнительные огненные
-        'heat', 'ember', 'combust', 'scorch', 'ash',
+        'heat', 'ember', 'combust', 'scorch', 'ash', 'pyro',
         // Дополнительные физические
         'armor', 'armour', 'physical', 'brutality', 'melee',
         // Дополнительные крафтовые/редкие скиллы
         'shield', 'bash', 'charge', 'strike', 'throw', 'reckoning',
-        'vengeance', 'riposte', 'fissure'
+        'vengeance', 'riposte', 'fissure',
+        // Дополнительно: stance, warrior skills
+        'blood', 'sand', 'flesh', 'stone', 'berserker', 'warcry', 'cry'
     ];
 
     // Зеленые (Dexterity) камни - проджектайлы, яды, ловушки
@@ -909,7 +922,10 @@ function getGemColor(gemName) {
         'gas', 'oil', 'smoke', 'drilling',
         'shrapnel', 'ice shards', 'permafrost',
         // Дополнительные attack skills
-        'arrow', 'trap', 'mine', 'steel', 'blade', 'dagger'
+        'arrow', 'trap', 'mine', 'steel', 'blade', 'dagger',
+        // Дополнительно: movement и utility
+        'blink', 'dash', 'shift', 'fade', 'evasion',
+        'poison', 'bleed', 'rupture', 'laceration'
     ];
 
     // Синие (Intelligence) камни - холод, молния, заклинания, миньоны
@@ -918,10 +934,12 @@ function getGemColor(gemName) {
         'cold', 'ice', 'frost', 'freeze', 'glacial', 'arctic', 'frostbite',
         'freezing pulse', 'frostbolt', 'ice nova', 'vortex', 'polar',
         'cold snap', 'creeping frost', 'winter orb', 'ice spear',
+        'chill', 'shatter',
         // Молния
         'spark', 'ball lightning', 'arc', 'storm', 'lightning', 'shock',
         'lightning warp', 'lightning tendrils', 'shock nova', 'static',
         'conductivity', 'crackling lance', 'lightning conduit',
+        'electrocute', 'thunder', 'voltage',
         // Огонь (заклинания)
         'firestorm', 'flameblast', 'fireball',
         // Физические заклинания
@@ -962,7 +980,9 @@ function getGemColor(gemName) {
         'magnetic', 'electrocute', 'chain lightning', 'plasma',
         // Дополнительные заклинания
         'wand', 'sceptre', 'golem', 'zombie', 'skeleton',
-        'curse', 'mark', 'weakness', 'punishment'
+        'curse', 'mark', 'weakness',
+        // Дополнительно: elemental и chaos
+        'elemental', 'chaos', 'void', 'profane', 'necro'
     ];
 
     // Проверяем ключевые слова для красных
@@ -1007,8 +1027,11 @@ function createTradeUrl(item) {
         };
 
         if (isUnique) {
-            // Уникальные фласки - поиск ТОЛЬКО по name (без type)
+            // Уникальные фласки - поиск по name и type
             queryObj.query.name = item.name;
+            if (item.base_type) {
+                queryObj.query.type = item.base_type;
+            }
         } else {
             // Обычные/magic/rare фласки - поиск по base_type или name
             const searchName = item.base_type || item.name;
