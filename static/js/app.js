@@ -206,11 +206,11 @@ function findDuplicates(items) {
         }
     });
 
-    // Возвращаем Set с названиями дубликатов
-    const duplicates = new Set();
+    // Возвращаем Map с количеством дубликатов
+    const duplicates = new Map();
     Object.entries(nameCounts).forEach(([name, count]) => {
         if (count > 1) {
-            duplicates.add(name);
+            duplicates.set(name, count);
         }
     });
 
@@ -525,7 +525,7 @@ function getAscendancyImage(ascendClassName) {
     return `https://web.poecdn.com/image/Art/2DArt/UIImages/InGame/AscendancyFrame${imageName}.png`;
 }
 
-function displayItems(items, containerId, gemsBySlot = {}, duplicates = new Set()) {
+function displayItems(items, containerId, gemsBySlot = {}, duplicates = new Map()) {
     const container = document.getElementById(containerId);
 
     if (!items || items.length === 0) {
@@ -653,10 +653,11 @@ function getItemCategory(item) {
     return 'Currency';
 }
 
-function createItemCard(item, gemsBySlot = {}, duplicates = new Set()) {
+function createItemCard(item, gemsBySlot = {}, duplicates = new Map()) {
     const rarityClass = getRarityClass(item.rarity);
     const isFlask = item.slot && item.slot.toLowerCase().includes('flask');
     const isDuplicate = duplicates.has(item.name);
+    const duplicateCount = duplicates.get(item.name) || 0;
 
     // Получаем камни для этого слота
     const itemGems = gemsBySlot[item.slot] || [];
@@ -831,7 +832,7 @@ function createItemCard(item, gemsBySlot = {}, duplicates = new Set()) {
 
     return `
         <div class="item-card ${rarityClass} ${isDuplicate ? 'has-duplicate' : ''}">
-            ${isDuplicate ? '<div class="duplicate-badge" title="Дубликат: у вас есть несколько таких предметов">⚠️ Дубликат</div>' : ''}
+            ${isDuplicate ? `<div class="duplicate-badge" title="Количество в билде: ${duplicateCount}">×${duplicateCount}</div>` : ''}
             <div class="item-card-top">
                 <div class="item-slot">${escapeHtml(item.slot)}${itemLevel ? ` | iLvl ${escapeHtml(itemLevel)}` : ''}</div>
                 ${itemIconHtml}
@@ -902,7 +903,8 @@ function getGemColor(gemName) {
             'lifetap', 'cruelty', 'endurance charge on melee stun', 'melee splash',
             'added fire damage', 'elemental damage with attacks', 'fire', 'stun',
             'knockback', 'bloodlust', 'awakened fire penetration', 'awakened brutality',
-            'awakened melee physical', 'awakened elemental damage'];
+            'awakened melee physical', 'awakened elemental damage', 'melee strike range',
+            'trauma', 'earthbreaker', 'physical', 'overwhelm', 'iron will'];
 
         // Зеленые support gems
         const greenSupports = ['pierce', 'chain', 'fork', 'greater multiple projectiles',
@@ -916,7 +918,8 @@ function getGemColor(gemName) {
             'awakened greater multiple projectiles', 'awakened vicious projectiles',
             'awakened void manipulation', 'arrow nova', 'focused ballista',
             'faster attacks', 'added chaos damage', 'chance to poison', 'lesser poison',
-            'awakened deadly ailments', 'awakened swift affliction', 'awakened unbound ailments'];
+            'awakened deadly ailments', 'awakened swift affliction', 'awakened unbound ailments',
+            'enhanced traps', 'detonation', 'culling strike', 'close range'];
 
         // Синие support gems
         const blueSupports = ['spell echo', 'unleash', 'intensify', 'spell cascade',
@@ -932,7 +935,9 @@ function getGemColor(gemName) {
             'awakened cold penetration', 'awakened lightning penetration',
             'faster casting', 'arcane surge', 'cast while channelling', 'cast on critical',
             'spell totem', 'awakened controlled destruction', 'awakened unleash',
-            'divergent', 'anomalous', 'phantasmal'];
+            'divergent', 'anomalous', 'phantasmal', 'increased duration', 'enhanced duration',
+            'overcharge', 'momentum', 'magnified effect', 'spell battery',
+            'elemental army', 'persistence', 'arcane tempo'];
 
         // Проверяем тип support
         for (const keyword of redSupports) {
@@ -979,7 +984,12 @@ function getGemColor(gemName) {
         // Курсы
         'warlords mark', 'vulnerability', 'flammability', 'punishment',
         // Новые
-        'flame link', 'link', 'rage vortex', 'corrupting cry'
+        'flame link', 'link', 'rage vortex', 'corrupting cry',
+        // PoE 2 и новые скиллы
+        'rolling', 'hammer of the gods', 'firestorm', 'stampede',
+        'crushing fist', 'artillery', 'sundering', 'vaal',
+        // Дополнительные огненные
+        'heat', 'ember', 'combust', 'scorch', 'ash'
     ];
 
     // Зеленые (Dexterity) камни - проджектайлы, яды, ловушки
@@ -1012,7 +1022,11 @@ function getGemColor(gemName) {
         'ricochet', 'chain', 'tornado', 'blood and sand', 'flesh and stone',
         'steelskin', 'phase run', 'smoke mine', 'explosive concoction',
         // Новые механики
-        'helix', 'gyre', 'steel', 'arrow'
+        'helix', 'gyre', 'steel', 'arrow',
+        // Дополнительные зеленые скиллы
+        'blade trap', 'corrosive', 'detonating', 'fragmentation',
+        'gas', 'oil', 'smoke', 'projectile', 'drilling',
+        'shrapnel', 'ice shards', 'frost', 'permafrost'
     ];
 
     // Синие (Intelligence) камни - холод, молния, заклинания, миньоны
@@ -1057,7 +1071,12 @@ function getGemColor(gemName) {
         'manabond', 'absolution', 'voltaxic', 'forbidden', 'wintertide',
         // Ключевые слова
         'orb', 'nova', 'pulse', 'intelligence', 'mana', 'energy shield',
-        'spell', 'cast', 'totem', 'sigil', 'cascade', 'siphon'
+        'spell', 'cast', 'totem', 'sigil', 'cascade', 'siphon',
+        // Дополнительные синие скиллы
+        'soul', 'chaos bolt', 'unstable', 'comet', 'meteor',
+        'curse', 'hex', 'mark', 'offering', 'convocation',
+        'phantasmal', 'spectral', 'elemental', 'prismatic',
+        'magnetic', 'electrocute', 'chain lightning', 'plasma'
     ];
 
     // Проверяем ключевые слова для красных
@@ -1211,20 +1230,42 @@ function createTradeUrl(item) {
         return `https://www.pathofexile.com/trade/search/${currentLeague}?q=${query}`;
     }
 
-    // For flasks (magic/rare/normal), search by base type
+    // For flasks (magic/rare/normal/unique), search by appropriate field
     if (isFlask) {
-        // Для фласков всегда используем base_type как type для поиска
-        const searchTerm = item.base_type || item.name;
+        // Для уникальных фласков используем name, для остальных - base_type
+        let searchTerm;
+        let useNameField = false;
+
+        if (isUnique) {
+            // Для уникальных фласков используем поле "name"
+            searchTerm = item.name;
+            useNameField = true;
+        } else {
+            // Для обычных/magic/rare фласков используем base_type
+            searchTerm = item.base_type || item.name;
+            useNameField = false;
+        }
+
         if (searchTerm) {
             const queryObj = {
                 "query": {
-                    "type": searchTerm,
                     "filters": {}
                 }
             };
 
-            // Для magic фласков можно добавить фильтр по редкости
-            if (item.rarity && item.rarity.toLowerCase().includes('magic')) {
+            // Устанавливаем правильное поле для поиска
+            if (useNameField) {
+                queryObj.query.name = searchTerm;
+                // Для уникальных также добавляем type если есть
+                if (item.base_type) {
+                    queryObj.query.type = item.base_type;
+                }
+            } else {
+                queryObj.query.type = searchTerm;
+            }
+
+            // Для magic фласков добавляем фильтр по редкости
+            if (!isUnique && item.rarity && item.rarity.toLowerCase().includes('magic')) {
                 queryObj.query.filters.type_filters = {
                     "filters": {
                         "rarity": {
