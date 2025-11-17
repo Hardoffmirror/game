@@ -534,6 +534,22 @@ header h1 {
     color: var(--text-secondary);
     font-size: 0.8rem;
     margin-top: 2px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.gem-trade-link {
+    font-size: 1rem;
+    text-decoration: none;
+    opacity: 0.7;
+    transition: opacity 0.2s, transform 0.2s;
+    display: inline-block;
+}
+
+.gem-trade-link:hover {
+    opacity: 1;
+    transform: scale(1.15);
 }
 
 /* Удалены старые классы камней - цвет теперь применяется напрямую через style */
@@ -739,6 +755,9 @@ header h1 {
     color: var(--text-secondary);
     font-size: 0.75rem;
     margin-left: 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 
 /* Item icons */
@@ -810,6 +829,154 @@ header h1 {
     font-size: 0.85rem;
     color: var(--text-primary);
     line-height: 1.5;
+}
+
+/* Compact mode toggle */
+.compact-mode-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 15px;
+    margin-bottom: 20px;
+    background: linear-gradient(145deg, var(--bg-card), #151515);
+    border-radius: 10px;
+    border: 2px solid var(--border);
+}
+
+.toggle-label {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 26px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #555;
+    transition: 0.3s;
+    border-radius: 26px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+    background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+}
+
+input:checked + .toggle-slider:before {
+    transform: translateX(24px);
+}
+
+/* Compact mode styles */
+body.compact-mode .item-card {
+    padding: 6px 10px;
+    margin-bottom: 4px;
+}
+
+body.compact-mode .item-card-top {
+    display: none;
+}
+
+body.compact-mode .item-header {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 0;
+}
+
+body.compact-mode .item-name {
+    font-size: 0.85rem;
+    margin-bottom: 0;
+}
+
+body.compact-mode .item-base-type,
+body.compact-mode .item-sockets,
+body.compact-mode .item-gems,
+body.compact-mode .item-properties,
+body.compact-mode .item-requirements,
+body.compact-mode .item-mods,
+body.compact-mode .item-status {
+    display: none;
+}
+
+body.compact-mode .item-slot {
+    font-size: 0.65rem;
+    display: inline;
+    margin-right: 8px;
+}
+
+body.compact-mode .item-header-right {
+    display: none;
+}
+
+body.compact-mode .items-grid {
+    grid-template-columns: 1fr;
+    gap: 4px;
+}
+
+body.compact-mode .duplicate-badge {
+    position: static;
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 6px;
+    font-size: 0.6rem;
+}
+
+/* Duplicate badge */
+.duplicate-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: linear-gradient(135deg, #ff9800, #ff5722);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(255, 87, 34, 0.4);
+    animation: pulse-duplicate 2s infinite;
+}
+
+.item-card.has-duplicate {
+    border: 2px solid rgba(255, 152, 0, 0.5);
+    box-shadow: 0 0 12px rgba(255, 152, 0, 0.3);
+}
+
+@keyframes pulse-duplicate {
+    0%, 100% {
+        box-shadow: 0 2px 8px rgba(255, 87, 34, 0.4);
+    }
+    50% {
+        box-shadow: 0 2px 12px rgba(255, 87, 34, 0.7);
+    }
 }
 
 /* Адаптивность */

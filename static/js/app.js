@@ -6,6 +6,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const errorDiv = document.getElementById('error');
     const loadingDiv = document.getElementById('loading');
     const resultsDiv = document.getElementById('results');
+    const compactModeCheckbox = document.getElementById('compactModeCheckbox');
+    const compactModeToggle = document.getElementById('compactModeToggle');
+
+    // Обработчик переключателя компактного режима
+    compactModeCheckbox.addEventListener('change', (e) => {
+        if (e.target.checked) {
+            document.body.classList.add('compact-mode');
+        } else {
+            document.body.classList.remove('compact-mode');
+        }
+    });
 
     parseBtn.addEventListener('click', async () => {
         const buildCode = buildCodeTextarea.value.trim();
@@ -86,7 +97,9 @@ function hideLoading() {
 
 function showResults() {
     const resultsDiv = document.getElementById('results');
+    const compactModeToggle = document.getElementById('compactModeToggle');
     resultsDiv.classList.add('show');
+    compactModeToggle.style.display = 'flex';
 }
 
 function hideResults() {
@@ -110,16 +123,41 @@ function displayResults(data) {
         });
     }
 
+    // Определяем дубликаты для jewels и flasks
+    const jewelDuplicates = findDuplicates(data.jewels || []);
+    const flaskDuplicates = findDuplicates(data.flasks || []);
+
     // Экипировка (с камнями)
     displayItems(data.equipment, 'equipmentList', gemsBySlot);
 
-    // Самоцветы (Jewels)
-    displayItems(data.jewels, 'jewelsList');
+    // Самоцветы (Jewels) - с отметками дубликатов
+    displayItems(data.jewels, 'jewelsList', {}, jewelDuplicates);
 
-    // Фласки
-    displayItems(data.flasks, 'flasksList');
+    // Фласки - с отметками дубликатов
+    displayItems(data.flasks, 'flasksList', {}, flaskDuplicates);
 
     showResults();
+}
+
+function findDuplicates(items) {
+    // Подсчитываем количество предметов с одинаковым названием
+    const nameCounts = {};
+    items.forEach(item => {
+        const name = item.name;
+        if (name) {
+            nameCounts[name] = (nameCounts[name] || 0) + 1;
+        }
+    });
+
+    // Возвращаем Set с названиями дубликатов
+    const duplicates = new Set();
+    Object.entries(nameCounts).forEach(([name, count]) => {
+        if (count > 1) {
+            duplicates.add(name);
+        }
+    });
+
+    return duplicates;
 }
 
 function displayBuildInfoAndStats(data) {
@@ -430,7 +468,7 @@ function getAscendancyImage(ascendClassName) {
     return `https://web.poecdn.com/image/Art/2DArt/UIImages/InGame/AscendancyFrame${imageName}.png`;
 }
 
-function displayItems(items, containerId, gemsBySlot = {}) {
+function displayItems(items, containerId, gemsBySlot = {}, duplicates = new Set()) {
     const container = document.getElementById(containerId);
 
     if (!items || items.length === 0) {
@@ -438,7 +476,7 @@ function displayItems(items, containerId, gemsBySlot = {}) {
         return;
     }
 
-    container.innerHTML = items.map(item => createItemCard(item, gemsBySlot)).join('');
+    container.innerHTML = items.map(item => createItemCard(item, gemsBySlot, duplicates)).join('');
 }
 
 function getItemIcon(item) {
@@ -558,9 +596,10 @@ function getItemCategory(item) {
     return 'Currency';
 }
 
-function createItemCard(item, gemsBySlot = {}) {
+function createItemCard(item, gemsBySlot = {}, duplicates = new Set()) {
     const rarityClass = getRarityClass(item.rarity);
     const isFlask = item.slot && item.slot.toLowerCase().includes('flask');
+    const isDuplicate = duplicates.has(item.name);
 
     // Получаем камни для этого слота
     const itemGems = gemsBySlot[item.slot] || [];
@@ -734,7 +773,8 @@ function createItemCard(item, gemsBySlot = {}) {
     const gemsHtml = itemGems.length > 0 ? createGemsDisplay(itemGems) : '';
 
     return `
-        <div class="item-card ${rarityClass}">
+        <div class="item-card ${rarityClass} ${isDuplicate ? 'has-duplicate' : ''}">
+            ${isDuplicate ? '<div class="duplicate-badge" title="Дубликат: у вас есть несколько таких предметов">⚠️ Дубликат</div>' : ''}
             <div class="item-card-top">
                 <div class="item-slot">${escapeHtml(item.slot)}${itemLevel ? ` | iLvl ${escapeHtml(itemLevel)}` : ''}</div>
                 ${itemIconHtml}
@@ -772,11 +812,13 @@ function createGemsDisplay(gemGroups) {
         const gems = gemGroup.gems.map(gem => {
             const details = `Lvl ${gem.level} | Q ${gem.quality}%`;
             const gemColor = getGemColor(gem.nameSpec);
+            const tradeUrl = createGemTradeUrl(gem);
+            const tradeLink = tradeUrl ? `<a href="${tradeUrl}" target="_blank" class="gem-trade-link" title="Искать на trade (${details})">🔗</a>` : '';
 
             return `
                 <div class="gem-item copyable" data-copy="${escapeHtml(gem.nameSpec)}" title="Нажмите, чтобы скопировать">
                     <span class="gem-name" style="color: ${gemColor};">${escapeHtml(gem.nameSpec)}</span>
-                    <span class="gem-details">${details}</span>
+                    <span class="gem-details">${details}${tradeLink}</span>
                 </div>
             `;
         }).join('');
@@ -964,11 +1006,29 @@ function createTradeUrl(item) {
 
     // For unique items, search by name
     if (item.rarity && item.rarity.toLowerCase().includes('unique')) {
-        const query = encodeURIComponent(JSON.stringify({
+        const queryObj = {
             "query": {
-                "name": item.name
+                "name": item.name,
+                "filters": {}
             }
-        }));
+        };
+
+        // Для уникальных jewels добавляем фильтр по item level если есть
+        if (isJewel && item.properties && item.properties['Item Level']) {
+            const ilvl = parseInt(item.properties['Item Level']);
+            if (!isNaN(ilvl)) {
+                queryObj.query.filters.misc_filters = {
+                    "filters": {
+                        "ilvl": {
+                            "min": Math.max(1, ilvl - 2),
+                            "max": ilvl + 2
+                        }
+                    }
+                };
+            }
+        }
+
+        const query = encodeURIComponent(JSON.stringify(queryObj));
         return `https://www.pathofexile.com/trade/search/${currentLeague}?q=${query}`;
     }
 
@@ -1066,6 +1126,44 @@ function createTradeUrl(item) {
 
     // For other items, generic search
     return null;
+}
+
+function createGemTradeUrl(gem) {
+    // Текущая лига
+    const currentLeague = 'Kreepers';  // TODO: сделать динамическим
+
+    if (!gem.nameSpec) return null;
+
+    const gemLevel = parseInt(gem.level) || 1;
+    const gemQuality = parseInt(gem.quality) || 0;
+
+    // Создаем запрос для поиска камня
+    const queryObj = {
+        "query": {
+            "type": gem.nameSpec,
+            "filters": {
+                "misc_filters": {
+                    "filters": {
+                        "gem_level": {
+                            "min": gemLevel,
+                            "max": null
+                        }
+                    }
+                }
+            }
+        }
+    };
+
+    // Добавляем фильтр по качеству если оно больше 0
+    if (gemQuality > 0) {
+        queryObj.query.filters.misc_filters.filters.quality = {
+            "min": gemQuality,
+            "max": null
+        };
+    }
+
+    const query = encodeURIComponent(JSON.stringify(queryObj));
+    return `https://www.pathofexile.com/trade/search/${currentLeague}?q=${query}`;
 }
 
 function getRarityClass(rarity) {
