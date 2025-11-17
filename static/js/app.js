@@ -257,15 +257,18 @@ function displayBuildInfoAndStats(data) {
     countItems(data.jewels, 'jewels');
     countItems(data.flasks, 'flasks');
 
-    // Создаем HTML для конфига, бандита и пантеона
+    // Создаем HTML для конфига и пантеона (без бандита)
     const configHtml = createConfigHtml(buildInfo, characterStats);
+
+    // Создаем строку с бандитом для вставки рядом с уровнем класса
+    const banditText = buildInfo.bandit && buildInfo.bandit !== 'None' ? ` | Bandit: ${escapeHtml(buildInfo.bandit)}` : '';
 
     // Объединенная верстка
     unifiedDiv.innerHTML = `
         <div class="build-info-stats-combined">
             ${configHtml}
             <div class="stats-section">
-                <div class="stats-title">📊 ${escapeHtml(buildInfo.className)}${buildInfo.ascendClassName && buildInfo.ascendClassName !== 'None' ? ` - ${escapeHtml(buildInfo.ascendClassName)}` : ''} | Lvl ${escapeHtml(buildInfo.level)}</div>
+                <div class="stats-title">📊 ${escapeHtml(buildInfo.className)}${buildInfo.ascendClassName && buildInfo.ascendClassName !== 'None' ? ` - ${escapeHtml(buildInfo.ascendClassName)}` : ''} | Lvl ${escapeHtml(buildInfo.level)}${banditText}</div>
                 <div class="stats-grid" style="display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 14px;">
                     <span>Всего: <strong>${stats.total.total}</strong></span>
                     ${stats.total.unique > 0 ? `<span class="rarity-unique-text">Уникальных: <strong>${stats.total.unique}</strong></span>` : ''}
@@ -287,10 +290,7 @@ function createConfigHtml(buildInfo, characterStats) {
         parts.push(`Config: ${characterStats.config.join(', ')}`);
     }
 
-    // Bandit
-    if (buildInfo.bandit && buildInfo.bandit !== 'None') {
-        parts.push(`Bandit: ${buildInfo.bandit}`);
-    }
+    // Bandit убран отсюда - теперь он выводится рядом с уровнем класса
 
     // Pantheon
     if (characterStats.pantheon) {
@@ -746,9 +746,14 @@ function getGemColor(gemName) {
     // Сначала проверяем на Vaal gems - они наследуют цвет основного скилла
     const isVaal = nameLower.startsWith('vaal ');
 
-    // Support gems - определяем цвет по типу support
-    const isSupport = nameLower.includes(' support') ||
-                     (nameLower.includes('awakened ') && nameLower.includes(' support'));
+    // Убираем "Vaal " для проверки основного камня
+    const baseName = isVaal ? nameLower.replace('vaal ', '') : nameLower;
+
+    // Support gems - определяем цвет по типу support (включая alternative quality)
+    const isSupport = baseName.includes(' support') ||
+                     baseName.includes(' support ') ||
+                     (baseName.includes('awakened ') && baseName.includes(' support')) ||
+                     baseName.endsWith(' support');
 
     if (isSupport) {
         // Красные support gems (Strength)
@@ -765,7 +770,8 @@ function getGemColor(gemName) {
             'melee', 'slam', 'strike', 'heavy', 'martial', 'awakened fire',
             'awakened added fire', 'infernal', 'burning', 'flame',
             'war banner', 'damage on full life', 'chance to flee', 'reduced mana',
-            'inspiration', 'second wind', 'eternal blessing'];
+            'inspiration', 'second wind', 'eternal blessing',
+            'weapon elemental damage', 'immolate', 'unbound ailments'];
 
 
         // Зеленые support gems (Dexterity)
@@ -810,13 +816,13 @@ function getGemColor(gemName) {
 
         // Проверяем тип support
         for (const keyword of redSupports) {
-            if (nameLower.includes(keyword)) return '#D02020';
+            if (baseName.includes(keyword)) return '#D02020';
         }
         for (const keyword of greenSupports) {
-            if (nameLower.includes(keyword)) return '#0D0';
+            if (baseName.includes(keyword)) return '#0D0';
         }
         for (const keyword of blueSupports) {
-            if (nameLower.includes(keyword)) return '#4AF';
+            if (baseName.includes(keyword)) return '#4AF';
         }
 
         // Универсальные supports - белые
@@ -860,7 +866,10 @@ function getGemColor(gemName) {
         // Дополнительные огненные
         'heat', 'ember', 'combust', 'scorch', 'ash',
         // Дополнительные физические
-        'armor', 'armour', 'physical', 'brutality', 'melee'
+        'armor', 'armour', 'physical', 'brutality', 'melee',
+        // Дополнительные крафтовые/редкие скиллы
+        'shield', 'bash', 'charge', 'strike', 'throw', 'reckoning',
+        'vengeance', 'riposte', 'fissure'
     ];
 
     // Зеленые (Dexterity) камни - проджектайлы, яды, ловушки
@@ -879,6 +888,7 @@ function getGemColor(gemName) {
         // Ловушки и мины
         'bear trap', 'fire trap', 'ice trap', 'lightning trap',
         'explosive trap', 'flamethrower trap', 'siphoning trap', 'seismic trap',
+        'conversion trap',
         // Удары и блинки
         'puncture', 'frenzy', 'double strike', 'flicker strike',
         'whirling blades', 'blink arrow', 'mirror arrow', 'dash',
@@ -897,7 +907,9 @@ function getGemColor(gemName) {
         // Дополнительные зеленые скиллы
         'blade trap', 'corrosive', 'detonating', 'fragmentation',
         'gas', 'oil', 'smoke', 'drilling',
-        'shrapnel', 'ice shards', 'permafrost'
+        'shrapnel', 'ice shards', 'permafrost',
+        // Дополнительные attack skills
+        'arrow', 'trap', 'mine', 'steel', 'blade', 'dagger'
     ];
 
     // Синие (Intelligence) камни - холод, молния, заклинания, миньоны
@@ -917,6 +929,7 @@ function getGemColor(gemName) {
         'glacial cascade',
         // Брэнды
         'storm brand', 'armageddon brand', 'penance brand', 'wintertide brand',
+        'brand',
         // Ауры и курсы
         'clarity', 'discipline', 'wrath', 'zealotry', 'malevolence',
         'purity of ice', 'purity of lightning', 'purity of elements',
@@ -946,23 +959,29 @@ function getGemColor(gemName) {
         'soul', 'chaos bolt', 'unstable', 'comet', 'meteor',
         'hex', 'offering', 'convocation',
         'phantasmal', 'spectral', 'prismatic',
-        'magnetic', 'electrocute', 'chain lightning', 'plasma'
+        'magnetic', 'electrocute', 'chain lightning', 'plasma',
+        // Дополнительные заклинания
+        'wand', 'sceptre', 'golem', 'zombie', 'skeleton',
+        'curse', 'mark', 'weakness', 'punishment'
     ];
 
     // Проверяем ключевые слова для красных
     for (const keyword of redKeywords) {
-        if (nameLower.includes(keyword)) return '#D02020';  // Насыщенный красный как в PoE
+        if (baseName.includes(keyword)) return '#D02020';  // Насыщенный красный как в PoE
     }
 
     // Проверяем ключевые слова для зеленых
     for (const keyword of greenKeywords) {
-        if (nameLower.includes(keyword)) return '#0D0';  // Насыщенный зелёный как в PoE
+        if (baseName.includes(keyword)) return '#0D0';  // Насыщенный зелёный как в PoE
     }
 
     // Проверяем ключевые слова для синих
     for (const keyword of blueKeywords) {
-        if (nameLower.includes(keyword)) return '#4AF';  // Насыщенный синий как в PoE
+        if (baseName.includes(keyword)) return '#4AF';  // Насыщенный синий как в PoE
     }
+
+    // Для отладки: логируем неопознанные камни
+    console.log('⚠️ Неопознанный камень (белый по умолчанию):', gemName);
 
     // По умолчанию белый (для гибридных и неизвестных)
     return '#e8e8e8';
@@ -979,7 +998,7 @@ function createTradeUrl(item) {
     const isFlask = item.slot && item.slot.toLowerCase().includes('flask');
     const isUnique = item.rarity && item.rarity.toLowerCase().includes('unique');
 
-    // Для фласков - только поиск по названию
+    // Для фласков - поиск по названию/типу
     if (isFlask) {
         const queryObj = {
             "query": {
@@ -988,14 +1007,13 @@ function createTradeUrl(item) {
         };
 
         if (isUnique) {
-            // Уникальные фласки - поиск по name
+            // Уникальные фласки - поиск ТОЛЬКО по name (без type)
             queryObj.query.name = item.name;
-            if (item.base_type) {
-                queryObj.query.type = item.base_type;
-            }
         } else {
-            // Обычные/magic/rare фласки - поиск по base_type
-            queryObj.query.type = item.base_type || item.name;
+            // Обычные/magic/rare фласки - поиск по base_type или name
+            const searchName = item.base_type || item.name;
+            // Для non-unique фласков используем type (не name)
+            queryObj.query.type = searchName;
         }
 
         const query = encodeURIComponent(JSON.stringify(queryObj));
