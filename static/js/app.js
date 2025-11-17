@@ -42,6 +42,16 @@ const BuildsManager = {
         return this.saveBuilds(filtered);
     },
 
+    renameBuild(id, newName) {
+        const builds = this.getBuilds();
+        const build = builds.find(b => b.id === id);
+        if (build) {
+            build.name = newName;
+            return this.saveBuilds(builds);
+        }
+        return false;
+    },
+
     getBuild(id) {
         const builds = this.getBuilds();
         return builds.find(b => b.id === id);
@@ -57,7 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Элементы управления билдами
     const savedBuildsSelect = document.getElementById('savedBuildsSelect');
-    const loadBuildBtn = document.getElementById('loadBuildBtn');
+    const renameBuildBtn = document.getElementById('renameBuildBtn');
     const deleteBuildBtn = document.getElementById('deleteBuildBtn');
     const saveBuildBtn = document.getElementById('saveBuildBtn');
     const saveBuildModal = document.getElementById('saveBuildModal');
@@ -65,6 +75,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const confirmSaveBtn = document.getElementById('confirmSaveBtn');
     const cancelSaveBtn = document.getElementById('cancelSaveBtn');
     const modalClose = document.querySelector('.modal-close');
+
+    // Элементы для переименования
+    const renameBuildModal = document.getElementById('renameBuildModal');
+    const buildRenameInput = document.getElementById('buildRenameInput');
+    const confirmRenameBtn = document.getElementById('confirmRenameBtn');
+    const cancelRenameBtn = document.getElementById('cancelRenameBtn');
+    const modalCloseRename = document.querySelector('.modal-close-rename');
 
     // Загрузка списка билдов при старте
     loadBuildsList();
@@ -124,21 +141,33 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Управление билдами
+    // Управление билдами - автоматическая загрузка при выборе
     savedBuildsSelect.addEventListener('change', () => {
         const selected = savedBuildsSelect.value;
-        loadBuildBtn.disabled = !selected;
+        renameBuildBtn.disabled = !selected;
         deleteBuildBtn.disabled = !selected;
+
+        // Автоматическая загрузка билда
+        if (selected) {
+            const buildId = parseInt(selected);
+            const build = BuildsManager.getBuild(buildId);
+            if (build) {
+                buildCodeTextarea.value = build.code;
+                showCopyNotification('Билд загружен: ' + build.name);
+            }
+        }
     });
 
-    loadBuildBtn.addEventListener('click', () => {
+    renameBuildBtn.addEventListener('click', () => {
         const buildId = parseInt(savedBuildsSelect.value);
         if (!buildId) return;
 
         const build = BuildsManager.getBuild(buildId);
         if (build) {
-            buildCodeTextarea.value = build.code;
-            showCopyNotification('Билд загружен: ' + build.name);
+            buildRenameInput.value = build.name;
+            renameBuildModal.classList.add('show');
+            buildRenameInput.focus();
+            buildRenameInput.select();
         }
     });
 
@@ -191,7 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Автоматически выбираем сохраненный билд
             savedBuildsSelect.value = newBuild.id;
-            loadBuildBtn.disabled = false;
+            renameBuildBtn.disabled = false;
             deleteBuildBtn.disabled = false;
         } else {
             showError('Ошибка при сохранении билда');
@@ -220,6 +249,53 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Обработчики для переименования
+    confirmRenameBtn.addEventListener('click', () => {
+        const buildId = parseInt(savedBuildsSelect.value);
+        const newName = buildRenameInput.value.trim();
+
+        if (!buildId) {
+            showError('Билд не выбран');
+            return;
+        }
+
+        if (!newName) {
+            showError('Введите новое название билда');
+            return;
+        }
+
+        if (BuildsManager.renameBuild(buildId, newName)) {
+            loadBuildsList();
+            savedBuildsSelect.value = buildId;
+            renameBuildModal.classList.remove('show');
+            showCopyNotification('Билд переименован: ' + newName);
+        } else {
+            showError('Ошибка при переименовании билда');
+        }
+    });
+
+    cancelRenameBtn.addEventListener('click', () => {
+        renameBuildModal.classList.remove('show');
+    });
+
+    modalCloseRename.addEventListener('click', () => {
+        renameBuildModal.classList.remove('show');
+    });
+
+    // Закрытие модального окна переименования по клику вне его
+    renameBuildModal.addEventListener('click', (e) => {
+        if (e.target === renameBuildModal) {
+            renameBuildModal.classList.remove('show');
+        }
+    });
+
+    // Переименование по Enter в input
+    buildRenameInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            confirmRenameBtn.click();
+        }
+    });
+
     function loadBuildsList() {
         const builds = BuildsManager.getBuilds();
 
@@ -238,7 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // Отключаем кнопки если нет выбранного билда
-        loadBuildBtn.disabled = true;
+        renameBuildBtn.disabled = true;
         deleteBuildBtn.disabled = true;
     }
 });

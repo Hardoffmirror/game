@@ -20,7 +20,7 @@
                     <select id="savedBuildsSelect">
                         <option value="">-- Выберите билд --</option>
                     </select>
-                    <button id="loadBuildBtn" class="btn-secondary" disabled>Загрузить</button>
+                    <button id="renameBuildBtn" class="btn-secondary" disabled>Переименовать</button>
                     <button id="deleteBuildBtn" class="btn-danger" disabled>Удалить</button>
                 </div>
             </div>
@@ -45,6 +45,24 @@
                 <div class="modal-footer">
                     <button id="confirmSaveBtn" class="btn">Сохранить</button>
                     <button id="cancelSaveBtn" class="btn-secondary">Отмена</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Модальное окно для переименования билда -->
+        <div id="renameBuildModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Переименовать билд</h2>
+                    <span class="modal-close-rename">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <label for="buildRenameInput">Новое название билда:</label>
+                    <input type="text" id="buildRenameInput" placeholder="Введите новое название" maxlength="50">
+                </div>
+                <div class="modal-footer">
+                    <button id="confirmRenameBtn" class="btn">Переименовать</button>
+                    <button id="cancelRenameBtn" class="btn-secondary">Отмена</button>
                 </div>
             </div>
         </div>
