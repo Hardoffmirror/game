@@ -11,10 +11,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Обработчик переключателя компактного режима
     compactModeCheckbox.addEventListener('change', (e) => {
+        const gemsCompactSection = document.getElementById('gemsCompactSection');
         if (e.target.checked) {
             document.body.classList.add('compact-mode');
+            if (gemsCompactSection) {
+                gemsCompactSection.style.display = 'block';
+            }
         } else {
             document.body.classList.remove('compact-mode');
+            if (gemsCompactSection) {
+                gemsCompactSection.style.display = 'none';
+            }
         }
     });
 
@@ -136,7 +143,39 @@ function displayResults(data) {
     // Фласки - с отметками дубликатов
     displayItems(data.flasks, 'flasksList', {}, flaskDuplicates);
 
+    // Заполняем компактную секцию камней
+    displayGemsCompact(data.gems || []);
+
     showResults();
+}
+
+function displayGemsCompact(gems) {
+    const gemsCompactGrid = document.getElementById('gemsCompactGrid');
+
+    if (!gems || gems.length === 0) {
+        gemsCompactGrid.innerHTML = '<div style="text-align: center; color: var(--text-secondary); padding: 20px;">Нет камней</div>';
+        return;
+    }
+
+    const gemsHtml = gems.map(gemGroup => {
+        return gemGroup.gems.map(gem => {
+            const gemColor = getGemColor(gem.nameSpec);
+            const tradeUrl = createGemTradeUrl(gem);
+            const tradeLink = tradeUrl ? `<a href="${tradeUrl}" target="_blank" class="gem-trade-link" title="Искать на trade">🔗</a>` : '';
+
+            return `
+                <div class="gem-compact-item">
+                    <span class="gem-compact-name" style="color: ${gemColor};">${escapeHtml(gem.nameSpec)}</span>
+                    <span class="gem-compact-details">
+                        Lvl ${gem.level} | Q ${gem.quality}%
+                        ${tradeLink}
+                    </span>
+                </div>
+            `;
+        }).join('');
+    }).join('');
+
+    gemsCompactGrid.innerHTML = gemsHtml;
 }
 
 function findDuplicates(items) {
@@ -1122,6 +1161,20 @@ function createTradeUrl(item) {
             }
         }));
         return `https://www.pathofexile.com/trade/search/${currentLeague}?q=${query}`;
+    }
+
+    // For flasks (any rarity), search by base type or name
+    const isFlask = item.slot && item.slot.toLowerCase().includes('flask');
+    if (isFlask) {
+        const searchTerm = item.base_type || item.name;
+        if (searchTerm) {
+            const query = encodeURIComponent(JSON.stringify({
+                "query": {
+                    "type": searchTerm
+                }
+            }));
+            return `https://www.pathofexile.com/trade/search/${currentLeague}?q=${query}`;
+        }
     }
 
     // For other items, generic search
