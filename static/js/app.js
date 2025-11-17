@@ -1455,7 +1455,11 @@ function getGemColor(gemName) {
         // Дополнительно: stance, warrior skills
         'blood', 'sand', 'flesh', 'stone', 'berserker', 'warcry', 'cry',
         // PoE 2 Strength skills
-        'sunder', 'armor break', 'stampede', 'rolling slam'
+        'sunder', 'armor break', 'stampede', 'rolling slam',
+        // Дополнительные огненные камни
+        'explosive', 'detonate', '炸', 'blast', '炎上',
+        // Дополнительные физические камни
+        'earthquake', 'rupture', 'rend', 'split', 'crack'
     ];
 
     // Зеленые (Dexterity) камни - проджектайлы, яды, ловушки
@@ -1501,7 +1505,10 @@ function getGemColor(gemName) {
         'poison', 'bleed', 'rupture', 'laceration',
         // PoE 2 и дополнительно
         'vine', 'thorn', 'toxic growth', 'pathfinder', 'ranger',
-        'crossbow', 'bolt', 'snipe', 'ambush', 'shadow step'
+        'crossbow', 'bolt', 'snipe', 'ambush', 'shadow step',
+        // Дополнительные зеленые камни
+        'rain', 'volley', 'mirage', 'clone', 'shadow',
+        'wind', 'gale', 'hurricane', 'swift', 'rapid'
     ];
 
     // Синие (Intelligence) камни - холод, молния, заклинания, миньоны
@@ -1561,7 +1568,10 @@ function getGemColor(gemName) {
         'elemental', 'chaos', 'void', 'profane', 'necro',
         // PoE 2 и дополнительные
         'conjure', 'mage', 'wizard', 'sorcerer', 'witch',
-        'rune', 'enchant', 'teleport', 'astral', 'cosmic'
+        'rune', 'enchant', 'teleport', 'astral', 'cosmic',
+        // Дополнительные синие камни
+        'blizzard', 'glacier', 'icicle', 'snowstorm', 'avalanche',
+        'bolt', 'surge', 'wave', 'tsunami', 'tidal'
     ];
 
     // Проверяем ключевые слова для красных

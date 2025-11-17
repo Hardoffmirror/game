@@ -1494,6 +1494,15 @@ body.progress-mode .gem-item {
 
 body.progress-mode .gem-compact-item {
     position: relative;
+    padding-left: 36px;
+}
+
+/* Позиционирование чекбоксов в компактном режиме для гемов */
+body.progress-mode .gem-compact-item .gem-progress-checkbox {
+    position: absolute;
+    left: 4px;
+    top: 50%;
+    transform: translateY(-50%);
 }
 
 body.progress-mode .gem-in-item {
