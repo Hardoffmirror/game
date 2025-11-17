@@ -792,53 +792,147 @@ function getGemColor(gemName) {
 
     const nameLower = gemName.toLowerCase();
 
-    // Support gems (обычно голубые или белые)
+    // Support gems - определяем цвет по типу support
     if (nameLower.includes('support') || nameLower.includes('awakened')) {
-        return '#8CF';  // Голубой для support
+        // Красные support gems
+        const redSupports = ['melee physical damage', 'multistrike', 'fortify', 'ruthless',
+            'bloodlust', 'brutality', 'pulverise', 'close combat', 'fist of war',
+            'impale', 'shockwave', 'ancestral call', 'call to arms', 'fire penetration',
+            'immolate', 'burning damage', 'combustion', 'ignite proliferation',
+            'elemental focus', 'chance to bleed', 'maim'];
+
+        // Зеленые support gems
+        const greenSupports = ['pierce', 'chain', 'fork', 'greater multiple projectiles',
+            'lesser multiple projectiles', 'slower projectiles', 'faster projectiles',
+            'projectile', 'point blank', 'ballista', 'barrage', 'volley',
+            'mirage archer', 'vicious projectiles', 'deadly ailments', 'unbound ailments',
+            'swift affliction', 'withering touch', 'void manipulation', 'efficacy',
+            'trap', 'mine', 'cluster traps', 'multiple traps', 'trap and mine damage',
+            'high-impact mine', 'blastchain mine', 'swift assembly'];
+
+        // Синие support gems
+        const blueSupports = ['spell echo', 'unleash', 'intensify', 'spell cascade',
+            'greater spell echo', 'concentrated effect', 'increased area',
+            'increased critical', 'power charge on critical', 'controlled destruction',
+            'elemental proliferation', 'hypothermia', 'bonechill', 'cold penetration',
+            'lightning penetration', 'added cold', 'added lightning', 'innervate',
+            'energy leech', 'mana leech', 'curse on hit', 'hextouch', 'blasphemy',
+            'minion damage', 'minion speed', 'minion life', 'meat shield', 'feeding frenzy',
+            'summon phantasm', 'infernal legion', 'deathmark'];
+
+        // Проверяем тип support
+        for (const keyword of redSupports) {
+            if (nameLower.includes(keyword)) return '#D02020';
+        }
+        for (const keyword of greenSupports) {
+            if (nameLower.includes(keyword)) return '#0D0';
+        }
+        for (const keyword of blueSupports) {
+            if (nameLower.includes(keyword)) return '#4AF';
+        }
+
+        // Универсальные supports - белые
+        return '#e8e8e8';
     }
 
-    // Красные (Strength) камни - физический урон, огонь, ближний бой
-    const redKeywords = ['molten', 'fire', 'burning', 'flame', 'infernal', 'magma', 'volcanic',
+    // Красные (Strength) активные камни - физический урон, огонь, ближний бой
+    const redKeywords = [
+        // Огненные
+        'molten', 'fire', 'burning', 'flame', 'infernal', 'magma', 'volcanic',
+        'righteous fire', 'scorching ray', 'purifying flame', 'flame dash',
+        'flame surge', 'incinerate', 'searing bond',
+        // Ауры и баффы
         'anger', 'determination', 'vitality', 'purity of fire', 'herald of ash',
+        'blood and sand', 'flesh and stone', 'pride', 'defiance banner',
+        // Физический ближний бой
         'cleave', 'ground slam', 'heavy strike', 'shield charge', 'leap slam',
-        'earthquake', 'sunder', 'ancestral', 'warchief', 'protector',
-        'enduring cry', 'immortal call', 'rallying cry', 'blood rage',
-        'melee', 'slam', 'smite', 'dominating blow', 'consecrated path',
-        'cyclone', 'bladestorm', 'lacerate', 'reave', 'static strike',
-        'infused channelling', 'perforate', 'boneshatter', 'general', 'warlord',
-        'strength', 'shockwave', 'tectonic', 'war', 'seismic', 'earthshatter',
-        'righteous fire', 'scorching ray', 'absolution', 'shield crush',
-        'rage', 'berserk', 'intimidating cry', 'generals cry', 'corrupting cry'];
+        'earthquake', 'sunder', 'sweep', 'glacial hammer', 'vigilant strike',
+        'dual strike', 'cleave', 'molten strike', 'wild strike',
+        'cyclone', 'bladestorm', 'lacerate', 'perforate', 'blade flurry',
+        'reave', 'vaal reave', 'static strike', 'ice crash',
+        // Слэмы и страйки
+        'slam', 'strike', 'smite', 'dominating blow', 'consecrated path',
+        'infernal blow', 'tectonic slam', 'earthshatter', 'boneshatter',
+        'shield crush', 'shield bash', 'spectral shield',
+        // Крики и стансы
+        'enduring cry', 'immortal call', 'rallying cry', 'intimidating cry',
+        'generals cry', 'seismic cry', 'ancestral cry', 'infernal cry',
+        'war banner', 'blood rage', 'berserk', 'rage',
+        // Тотемы и ancestral
+        'ancestral', 'warchief', 'protector',
+        // Прочее
+        'warlord', 'shockwave', 'war', 'seismic', 'absolution'
+    ];
 
     // Зеленые (Dexterity) камни - проджектайлы, яды, ловушки
-    const greenKeywords = ['split arrow', 'ice shot', 'tornado shot', 'rain of arrows',
+    const greenKeywords = [
+        // Луки и стрелы
+        'split arrow', 'ice shot', 'tornado shot', 'rain of arrows',
         'barrage', 'blast rain', 'caustic arrow', 'toxic rain', 'scourge arrow',
+        'burning arrow', 'lightning arrow', 'explosive arrow', 'shrapnel shot',
+        'elemental hit', 'galvanic arrow', 'ensnaring arrow',
+        // Баллисты
+        'ballista', 'artillery ballista', 'siege ballista', 'shrapnel ballista',
+        // Яды и DoT
         'viper strike', 'pestilent strike', 'cobra lash', 'plague bearer',
-        'grace', 'haste', 'precision', 'herald of agony', 'herald of ice',
-        'toxic', 'poison', 'venom', 'viper', 'plague', 'caustic',
-        'trap', 'mine', 'bear trap', 'lightning arrow', 'explosive arrow',
+        'poison', 'venom', 'viper', 'plague', 'caustic', 'toxic',
+        'withering step', 'wither',
+        // Ловушки и мины
+        'trap', 'mine', 'bear trap', 'fire trap', 'ice trap', 'lightning trap',
+        'explosive trap', 'flamethrower trap', 'siphoning trap', 'seismic trap',
+        // Удары и блинки
         'puncture', 'frenzy', 'double strike', 'dual strike', 'flicker strike',
-        'whirling blades', 'blink arrow', 'mirror arrow', 'dash', 'spectral throw',
-        'ballista', 'artillery', 'dexterity', 'evasion', 'ricochet', 'chain',
-        'shrapnel', 'galvanic', 'elemental hit', 'spectral helix', 'tornado',
-        'blood and sand', 'flesh and stone', 'withering step', 'steelskin',
-        'ensnaring arrow', 'siege ballista', 'artillery ballista'];
+        'whirling blades', 'blink arrow', 'mirror arrow', 'dash', 'frost blink',
+        'lancing steel', 'shattering steel', 'splitting steel', 'spectral throw',
+        'spectral helix', 'venom gyre', 'cobra', 'pestilence',
+        // Ауры
+        'grace', 'haste', 'precision', 'herald of agony', 'herald of ice',
+        // Прочее
+        'ricochet', 'chain', 'tornado', 'blood and sand', 'flesh and stone',
+        'steelskin', 'phase run', 'smoke mine'
+    ];
 
     // Синие (Intelligence) камни - холод, молния, заклинания, миньоны
-    const blueKeywords = ['cold', 'ice', 'frost', 'freeze', 'glacial', 'arctic', 'frostbite',
-        'clarity', 'discipline', 'wrath', 'zealotry', 'purity of ice', 'purity of lightning',
-        'herald of thunder', 'freezing pulse', 'frostbolt', 'ice nova', 'vortex',
-        'cold snap', 'spark', 'ball lightning', 'arc', 'storm', 'lightning', 'shock',
-        'wave of conviction', 'orb of storms', 'discharge', 'firestorm', 'flameblast',
-        'raise zombie', 'raise spectre', 'summon', 'animate', 'skeletons', 'carrion',
-        'stone golem', 'chaos golem', 'flame golem', 'ice golem', 'lightning golem',
-        'blade vortex', 'ethereal knives', 'bladefall', 'blade blast',
-        'power siphon', 'kinetic blast', 'storm brand', 'armageddon brand',
-        'voltaxic burst', 'hydrosphere', 'orb', 'nova', 'pulse', 'intelligence',
-        'mana', 'energy shield', 'spell', 'cast', 'brand', 'totem', 'sigil',
-        'divine ire', 'purifying flame', 'winter orb', 'creeping frost',
-        'forbidden rite', 'reap', 'exsanguinate', 'corrupting fever',
-        'tempest shield', 'frost shield', 'arcane cloak', 'sigil of power'];
+    const blueKeywords = [
+        // Холод
+        'cold', 'ice', 'frost', 'freeze', 'glacial', 'arctic', 'frostbite',
+        'freezing pulse', 'frostbolt', 'ice nova', 'vortex', 'polar',
+        'cold snap', 'creeping frost', 'winter orb', 'ice spear',
+        // Молния
+        'spark', 'ball lightning', 'arc', 'storm', 'lightning', 'shock',
+        'lightning warp', 'lightning tendrils', 'shock nova', 'static',
+        'conductivity', 'overcharge', 'crackling lance', 'lightning conduit',
+        // Огонь (заклинания)
+        'firestorm', 'flameblast', 'fireball', 'flame surge',
+        // Физические заклинания
+        'ethereal knives', 'bladefall', 'blade blast', 'blade vortex',
+        'bladefall', 'glacial cascade',
+        // Брэнды
+        'storm brand', 'armageddon brand', 'penance brand', 'wintertide brand',
+        'brand',
+        // Ауры и курсы
+        'clarity', 'discipline', 'wrath', 'zealotry', 'malevolence',
+        'purity of ice', 'purity of lightning', 'purity of elements',
+        'herald of thunder', 'herald of ice', 'aspect',
+        // Миньоны
+        'raise zombie', 'raise spectre', 'summon', 'animate', 'skeletons',
+        'carrion', 'raging spirits', 'phantasm', 'stone golem', 'chaos golem',
+        'flame golem', 'ice golem', 'lightning golem', 'carrion golem',
+        'absolution', 'herald of purity',
+        // Другие заклинания
+        'wave of conviction', 'orb of storms', 'discharge', 'power siphon',
+        'kinetic blast', 'voltaxic burst', 'hydrosphere', 'eye of winter',
+        'divine ire', 'purifying flame', 'forbidden rite', 'reap',
+        'exsanguinate', 'corrupting fever', 'soulrend', 'blight', 'essence drain',
+        'contagion', 'dark pact', 'detonate dead', 'volatile dead',
+        'unearth', 'bodyswap', 'bone offering', 'flesh offering', 'spirit offering',
+        // Щиты и защита
+        'tempest shield', 'frost shield', 'arcane cloak', 'sigil of power',
+        'frost bomb', 'orb of storms',
+        // Ключевые слова
+        'orb', 'nova', 'pulse', 'intelligence', 'mana', 'energy shield',
+        'spell', 'cast', 'totem', 'sigil', 'cascade', 'siphon'
+    ];
 
     // Проверяем ключевые слова для красных
     for (const keyword of redKeywords) {
