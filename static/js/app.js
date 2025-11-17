@@ -58,6 +58,54 @@ const BuildsManager = {
     }
 };
 
+// Управление прогрессом сбора предметов
+const ProgressManager = {
+    STORAGE_KEY: 'poe_item_progress',
+
+    getProgress() {
+        try {
+            const progress = localStorage.getItem(this.STORAGE_KEY);
+            return progress ? JSON.parse(progress) : {};
+        } catch (error) {
+            console.error('Ошибка при чтении прогресса:', error);
+            return {};
+        }
+    },
+
+    saveProgress(progress) {
+        try {
+            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(progress));
+            return true;
+        } catch (error) {
+            console.error('Ошибка при сохранении прогресса:', error);
+            return false;
+        }
+    },
+
+    toggleItem(itemId) {
+        const progress = this.getProgress();
+        progress[itemId] = !progress[itemId];
+        this.saveProgress(progress);
+        return progress[itemId];
+    },
+
+    isItemCollected(itemId) {
+        const progress = this.getProgress();
+        return !!progress[itemId];
+    },
+
+    clearProgress() {
+        this.saveProgress({});
+    },
+
+    getStats() {
+        const progress = this.getProgress();
+        const total = Object.keys(progress).length;
+        const collected = Object.values(progress).filter(v => v).length;
+        return { total, collected };
+    }
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     const buildCodeTextarea = document.getElementById('buildCode');
     const parseBtn = document.getElementById('parseBtn');
@@ -317,6 +365,173 @@ document.addEventListener('DOMContentLoaded', () => {
         renameBuildBtn.disabled = true;
         deleteBuildBtn.disabled = true;
     }
+
+    // Обработчики режима отслеживания прогресса
+    const progressModeCheckbox = document.getElementById('progressModeCheckbox');
+    const progressModeOptions = document.getElementById('progressModeOptions');
+    const hideCollectedCheckbox = document.getElementById('hideCollectedCheckbox');
+    const showProgressListBtn = document.getElementById('showProgressListBtn');
+    const clearProgressBtn = document.getElementById('clearProgressBtn');
+    const progressListPanel = document.getElementById('progressListPanel');
+    const closeProgressList = document.getElementById('closeProgressList');
+
+    if (progressModeCheckbox) {
+        progressModeCheckbox.addEventListener('change', (e) => {
+            const isProgressMode = e.target.checked;
+            document.body.classList.toggle('progress-mode', isProgressMode);
+
+            if (progressModeOptions) {
+                progressModeOptions.style.display = isProgressMode ? 'flex' : 'none';
+            }
+
+            // Показываем/скрываем чекбоксы на предметах
+            document.querySelectorAll('.item-progress-checkbox').forEach(cb => {
+                cb.style.display = isProgressMode ? 'flex' : 'none';
+            });
+
+            // Показываем/скрываем чекбоксы на камнях
+            document.querySelectorAll('.gem-progress-checkbox').forEach(cb => {
+                cb.style.display = isProgressMode ? 'flex' : 'none';
+            });
+        });
+    }
+
+    if (hideCollectedCheckbox) {
+        hideCollectedCheckbox.addEventListener('change', (e) => {
+            const shouldHide = e.target.checked;
+            document.body.classList.toggle('hide-collected', shouldHide);
+
+            // Скрываем/показываем собранные предметы
+            document.querySelectorAll('.item-card').forEach(card => {
+                const checkbox = card.querySelector('.item-checkbox-input');
+                if (checkbox && checkbox.checked && shouldHide) {
+                    card.style.display = 'none';
+                } else {
+                    card.style.display = '';
+                }
+            });
+
+            // Скрываем/показываем собранные камни
+            document.querySelectorAll('.gem-item').forEach(gem => {
+                const checkbox = gem.querySelector('.gem-checkbox-input');
+                if (checkbox && checkbox.checked && shouldHide) {
+                    gem.style.display = 'none';
+                } else {
+                    gem.style.display = '';
+                }
+            });
+        });
+    }
+
+    if (showProgressListBtn) {
+        showProgressListBtn.addEventListener('click', () => {
+            updateProgressList();
+            progressListPanel.style.display = 'block';
+        });
+    }
+
+    if (closeProgressList) {
+        closeProgressList.addEventListener('click', () => {
+            progressListPanel.style.display = 'none';
+        });
+    }
+
+    if (clearProgressBtn) {
+        clearProgressBtn.addEventListener('click', () => {
+            if (confirm('Очистить весь прогресс отслеживания?')) {
+                ProgressManager.clearProgress();
+
+                // Снимаем все галочки
+                document.querySelectorAll('.item-checkbox-input, .gem-checkbox-input').forEach(cb => {
+                    cb.checked = false;
+                });
+
+                // Показываем все скрытые предметы
+                document.querySelectorAll('.item-card, .gem-item').forEach(item => {
+                    item.style.display = '';
+                });
+
+                showCopyNotification('Прогресс очищен');
+                updateProgressList();
+            }
+        });
+    }
+
+    function updateProgressList() {
+        const progressListContent = document.getElementById('progressListContent');
+        if (!progressListContent) return;
+
+        const allItems = [];
+
+        // Собираем все предметы
+        document.querySelectorAll('.item-card').forEach(card => {
+            const checkbox = card.querySelector('.item-checkbox-input');
+            const nameEl = card.querySelector('.item-name');
+            const slotEl = card.querySelector('.item-slot');
+
+            if (checkbox && nameEl) {
+                allItems.push({
+                    type: 'item',
+                    name: nameEl.textContent,
+                    slot: slotEl ? slotEl.textContent : 'Unknown',
+                    collected: checkbox.checked,
+                    id: checkbox.dataset.itemId
+                });
+            }
+        });
+
+        // Собираем все камни
+        document.querySelectorAll('.gem-item').forEach(gem => {
+            const checkbox = gem.querySelector('.gem-checkbox-input');
+            const nameEl = gem.querySelector('.gem-name');
+
+            if (checkbox && nameEl) {
+                allItems.push({
+                    type: 'gem',
+                    name: nameEl.textContent,
+                    slot: 'Gem',
+                    collected: checkbox.checked,
+                    id: checkbox.dataset.itemId
+                });
+            }
+        });
+
+        // Сортируем: сначала несобранные, потом собранные
+        allItems.sort((a, b) => {
+            if (a.collected !== b.collected) {
+                return a.collected ? 1 : -1;
+            }
+            return a.name.localeCompare(b.name);
+        });
+
+        const collectedCount = allItems.filter(item => item.collected).length;
+        const totalCount = allItems.length;
+        const percentage = totalCount > 0 ? Math.round((collectedCount / totalCount) * 100) : 0;
+
+        const html = `
+            <div class="progress-stats">
+                <div class="progress-bar-container">
+                    <div class="progress-bar" style="width: ${percentage}%"></div>
+                </div>
+                <div class="progress-text">Собрано: ${collectedCount} / ${totalCount} (${percentage}%)</div>
+            </div>
+            <div class="progress-items-list">
+                ${allItems.map(item => `
+                    <div class="progress-list-item ${item.collected ? 'collected' : ''}">
+                        <input type="checkbox" ${item.collected ? 'checked' : ''}
+                               onchange="ProgressManager.toggleItem('${item.id}'); updateProgressList();">
+                        <span class="progress-item-name">${escapeHtml(item.name)}</span>
+                        <span class="progress-item-slot">${escapeHtml(item.slot)}</span>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+
+        progressListContent.innerHTML = html;
+    }
+
+    // Делаем updateProgressList глобальной
+    window.updateProgressList = updateProgressList;
 });
 
 function showError(message) {
@@ -410,8 +625,24 @@ function displayGemsCompact(gems) {
             const tradeUrl = createGemTradeUrl(gem);
             const tradeLink = tradeUrl ? `<a href="${tradeUrl}" target="_blank" class="gem-trade-link" title="Искать на trade">🔗</a>` : '';
 
+            // Создаем ID для камня (такой же как в createGemsDisplay)
+            const gemId = `gem_${gem.nameSpec}_${gem.level}_${gem.quality}`.replace(/[^a-zA-Z0-9_]/g, '_');
+            const isCollected = ProgressManager.isItemCollected(gemId);
+
+            // Чекбокс для камня
+            const checkboxHtml = `
+                <div class="gem-progress-checkbox" style="display: none; margin-right: 8px;">
+                    <label class="progress-checkbox-label">
+                        <input type="checkbox" class="gem-checkbox-input" data-item-id="${gemId}" ${isCollected ? 'checked' : ''}
+                               onchange="handleGemCheckboxChange(this, '${gemId}')">
+                        <span class="checkbox-mark"></span>
+                    </label>
+                </div>
+            `;
+
             return `
                 <div class="gem-compact-item">
+                    ${checkboxHtml}
                     <span class="gem-compact-name copyable" data-copy="${escapeHtml(gem.nameSpec)}" style="color: ${gemColor};" title="Нажмите для копирования">${escapeHtml(gem.nameSpec)}</span>
                     <span class="gem-compact-details">
                         Lvl ${gem.level} | Q ${gem.quality}%
@@ -772,6 +1003,10 @@ function createItemCard(item, gemsBySlot = {}, duplicates = new Map()) {
     const isDuplicate = duplicates.has(item.name);
     const duplicateCount = duplicates.get(item.name) || 0;
 
+    // Создаем уникальный ID для предмета
+    const itemId = `item_${item.slot}_${item.name}`.replace(/[^a-zA-Z0-9_]/g, '_');
+    const isCollected = ProgressManager.isItemCollected(itemId);
+
     // Получаем камни для этого слота
     const itemGems = gemsBySlot[item.slot] || [];
 
@@ -943,8 +1178,20 @@ function createItemCard(item, gemsBySlot = {}, duplicates = new Map()) {
     // Отображаем камни для этого предмета
     const gemsHtml = itemGems.length > 0 ? createGemsDisplay(itemGems) : '';
 
+    // Чекбокс для режима отслеживания
+    const checkboxHtml = `
+        <div class="item-progress-checkbox" style="display: none;">
+            <label class="progress-checkbox-label">
+                <input type="checkbox" class="item-checkbox-input" data-item-id="${itemId}" ${isCollected ? 'checked' : ''}
+                       onchange="handleItemCheckboxChange(this, '${itemId}')">
+                <span class="checkbox-mark"></span>
+            </label>
+        </div>
+    `;
+
     return `
         <div class="item-card ${rarityClass} ${isDuplicate ? 'has-duplicate' : ''}">
+            ${checkboxHtml}
             ${isDuplicate ? `<div class="duplicate-badge" title="Количество в билде: ${duplicateCount}">×${duplicateCount}</div>` : ''}
             <div class="item-card-top">
                 <div class="item-slot">${escapeHtml(item.slot)}${itemLevel ? ` | iLvl ${escapeHtml(itemLevel)}` : ''}</div>
@@ -986,10 +1233,28 @@ function createGemsDisplay(gemGroups) {
             const tradeUrl = createGemTradeUrl(gem);
             const tradeLink = tradeUrl ? `<a href="${tradeUrl}" target="_blank" class="gem-trade-link" title="Искать на trade (${details})">🔗</a>` : '';
 
+            // Создаем ID для камня
+            const gemId = `gem_${gem.nameSpec}_${gem.level}_${gem.quality}`.replace(/[^a-zA-Z0-9_]/g, '_');
+            const isCollected = ProgressManager.isItemCollected(gemId);
+
+            // Чекбокс для камня
+            const checkboxHtml = `
+                <div class="gem-progress-checkbox" style="display: none;">
+                    <label class="progress-checkbox-label">
+                        <input type="checkbox" class="gem-checkbox-input" data-item-id="${gemId}" ${isCollected ? 'checked' : ''}
+                               onchange="handleGemCheckboxChange(this, '${gemId}')">
+                        <span class="checkbox-mark"></span>
+                    </label>
+                </div>
+            `;
+
             return `
                 <div class="gem-item copyable" data-copy="${escapeHtml(gem.nameSpec)}" title="Нажмите, чтобы скопировать">
-                    <span class="gem-name" style="color: ${gemColor};">${escapeHtml(gem.nameSpec)}</span>
-                    <span class="gem-details">${details}${tradeLink}</span>
+                    ${checkboxHtml}
+                    <div class="gem-content">
+                        <span class="gem-name" style="color: ${gemColor};">${escapeHtml(gem.nameSpec)}</span>
+                        <span class="gem-details">${details}${tradeLink}</span>
+                    </div>
                 </div>
             `;
         }).join('');
@@ -1649,4 +1914,34 @@ function getCategoryFromSlot(slot) {
     if (slotLower.includes('weapon')) return 'Weapons';
 
     return 'Currency';
+}
+
+// Обработчик изменения чекбокса предмета
+function handleItemCheckboxChange(checkbox, itemId) {
+    const isChecked = ProgressManager.toggleItem(itemId);
+    checkbox.checked = isChecked;
+
+    // Если включен режим скрытия собранного, скрываем/показываем предмет
+    const hideCollected = document.getElementById('hideCollectedCheckbox');
+    if (hideCollected && hideCollected.checked && isChecked) {
+        const card = checkbox.closest('.item-card');
+        if (card) {
+            card.style.display = 'none';
+        }
+    }
+}
+
+// Обработчик изменения чекбокса камня
+function handleGemCheckboxChange(checkbox, gemId) {
+    const isChecked = ProgressManager.toggleItem(gemId);
+    checkbox.checked = isChecked;
+
+    // Если включен режим скрытия собранного, скрываем/показываем камень
+    const hideCollected = document.getElementById('hideCollectedCheckbox');
+    if (hideCollected && hideCollected.checked && isChecked) {
+        const gemItem = checkbox.closest('.gem-item');
+        if (gemItem) {
+            gemItem.style.display = 'none';
+        }
+    }
 }
